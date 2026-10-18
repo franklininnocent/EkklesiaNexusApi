@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Marketing\Http\Controllers\AdminContactEnquiryController;
 use Modules\Marketing\Http\Controllers\AdminMarketingContentController;
 use Modules\Marketing\Http\Controllers\AdminMarketingPlanCatalogController;
+use Modules\Marketing\Http\Controllers\AdminMarketingSeoMonitoringController;
 use Modules\Marketing\Http\Controllers\AdminWebSettingsController;
 use Modules\Marketing\Http\Controllers\PublicMarketingBffThrottleController;
 use Modules\Marketing\Http\Controllers\PublicMarketingPlanPreviewController;
@@ -86,6 +87,12 @@ Route::middleware(['auth:api', EnsureSuperAdmin::class])
             ->name('plan-catalog.revisions.republish');
         Route::post('/plan-catalog/retry-revalidate', [AdminMarketingPlanCatalogController::class, 'retryRevalidate'])
             ->name('plan-catalog.retry-revalidate');
+
+        Route::get('/seo-monitoring/snapshot', [AdminMarketingSeoMonitoringController::class, 'snapshot'])
+            ->name('seo-monitoring.snapshot');
+        Route::post('/seo-monitoring/scans', [AdminMarketingSeoMonitoringController::class, 'store'])
+            ->middleware('throttle:6,1')
+            ->name('seo-monitoring.scans.store');
     });
 
 Route::middleware(['auth:api'])
