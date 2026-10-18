@@ -41,6 +41,11 @@ class PlatformProductionCheck extends Command
 
                 return $this->hostsArePublic($origins);
             }, true),
+            $this->check('CORS allows Idempotency-Key header', function (): bool {
+                $headers = config('cors.allowed_headers', []);
+
+                return is_array($headers) && in_array('Idempotency-Key', $headers, true);
+            }, true),
             $this->check('Queue driver is not sync', fn () => config('queue.default') !== 'sync', $strict),
             $this->check('Cache store is redis', fn () => config('cache.default') === 'redis', $strict),
             $this->check('Platform health token configured', fn () => (string) config('tenants.platform.health.token', '') !== '', $strict),
