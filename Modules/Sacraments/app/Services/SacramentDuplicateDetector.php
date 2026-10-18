@@ -9,6 +9,7 @@ use Modules\Sacraments\Models\SacramentType;
 use Modules\Sacraments\Support\SacramentEventSubtype;
 use Modules\Sacraments\Support\SacramentOrdinationType;
 use Modules\Sacraments\Support\SacramentParticipantRole;
+use Modules\Sacraments\Support\SacramentStatus;
 use Modules\Sacraments\Support\SacramentTypeCode;
 
 /**
@@ -63,22 +64,19 @@ class SacramentDuplicateDetector
             return null;
         }
 
-        $person = $this->primaryPersonName($normalized, $code);
-        if ($person === null) {
+        $query = $this->liveRegisterQuery($tenantId, $type->id, $data, $normalized, $code);
+        if ($query === null) {
             return null;
         }
-
-        $query = Sacrament::query()
-            ->where('tenant_id', $tenantId)
-            ->where('sacrament_type_id', $type->id)
-            ->whereNull('deleted_at')
-            ->where('recipient_name', $person);
 
         if ($repeatable) {
             $query->whereDate('date_administered', $date);
         }
 
-        return $this->firstWarning($query);
+        return $this->firstWarning(
+            $query,
+            ! $repeatable && $this->primaryPersonId($data, $normalized, $code) !== null
+        );
     }
 
     /**
@@ -95,19 +93,14 @@ class SacramentDuplicateDetector
     ): ?array {
         $subtype = SacramentEventSubtype::normalize($data['event_subtype'] ?? null)
             ?? SacramentEventSubtype::FIRST_COMMUNION;
-        $person = $this->primaryPersonName($normalized, $code);
-        if ($person === null) {
+        $query = $this->liveRegisterQuery($tenantId, $type->id, $data, $normalized, $code);
+        if ($query === null) {
             return null;
         }
 
-        $query = Sacrament::query()
-            ->where('tenant_id', $tenantId)
-            ->where('sacrament_type_id', $type->id)
-            ->where('event_subtype', $subtype)
-            ->whereNull('deleted_at')
-            ->where('recipient_name', $person);
+        $query->where('event_subtype', $subtype);
 
-        return $this->firstWarning($query);
+        return $this->firstWarning($query, false);
     }
 
     /**
@@ -136,7 +129,7 @@ class SacramentDuplicateDetector
             ->where('recipient_name', $person)
             ->where('typed_attributes->ordination_type', $ordination);
 
-        return $this->firstWarning($query);
+        return $this->firstWarning($query, false);
     }
 
     /**
@@ -167,7 +160,68 @@ class SacramentDuplicateDetector
             $query->where('marriage_groom_full_name', $groom);
         }
 
-        return $this->firstWarning($query);
+        return $this->firstWarning($query, false);
+    }
+
+    /**
+     * Tenant-scoped live register rows for this parish. Profile summaries are not queried.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  list<array<string, mixed>>  $normalized
+     */
+    private function liveRegisterQuery(
+        int $tenantId,
+        int $typeId,
+        array $data,
+        array $normalized,
+        string $code
+    ): ?Builder {
+        $personId = $this->primaryPersonId($data, $normalized, $code);
+        $personName = $this->primaryPersonName($normalized, $code);
+        if ($personId === null && $personName === null) {
+            return null;
+        }
+
+        $query = Sacrament::query()
+            ->where('tenant_id', $tenantId)
+            ->where('sacrament_type_id', $typeId)
+            ->whereNull('deleted_at')
+            ->whereIn('status', [SacramentStatus::REGISTERED, SacramentStatus::CONDITIONAL]);
+
+        if ($personId !== null) {
+            return $query->where('person_id', $personId);
+        }
+
+        return $query->where('recipient_name', $personName);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  list<array<string, mixed>>  $normalized
+     */
+    private function primaryPersonId(array $data, array $normalized, string $code): ?string
+    {
+        $fromData = $data['person_id'] ?? null;
+        if (is_string($fromData) && $fromData !== '') {
+            return $fromData;
+        }
+
+        $role = $code === SacramentTypeCode::HOLY_ORDERS
+            ? SacramentParticipantRole::CANDIDATE
+            : SacramentParticipantRole::RECIPIENT;
+
+        foreach ($normalized as $participant) {
+            if (($participant['role'] ?? null) !== $role) {
+                continue;
+            }
+
+            $personId = $participant['person_id']
+                ?? ($participant['snapshot_json']['person_id'] ?? null);
+
+            return $personId ? (string) $personId : null;
+        }
+
+        return null;
     }
 
     /**
@@ -207,9 +261,9 @@ class SacramentDuplicateDetector
      * @param  Builder  $query
      * @return array<string, mixed>|null
      */
-    private function firstWarning($query): ?array
+    private function firstWarning($query, bool $identityMatch): ?array
     {
-        $existing = $query->first(['id', 'recipient_name', 'date_administered', 'status', 'event_subtype']);
+        $existing = $query->first(['id', 'recipient_name', 'date_administered', 'status', 'event_subtype', 'person_id']);
         if (! $existing) {
             return null;
         }
@@ -220,6 +274,7 @@ class SacramentDuplicateDetector
             'date_administered' => optional($existing->date_administered)?->format('Y-m-d'),
             'status' => $existing->status,
             'event_subtype' => $existing->event_subtype,
+            'identity_match' => $identityMatch,
         ];
     }
 }

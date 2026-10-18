@@ -131,6 +131,29 @@ class FamilyDashboardApiTest extends FamilyCertificationTestCase
     }
 
     #[Test]
+    public function it_counts_household_profile_and_active_family_head_correctly(): void
+    {
+        $ctx = $this->authenticateAsStaff();
+        $this->seedHousehold($ctx['tenant']);
+
+        $withHead = $this->getJson('/api/families/dashboard')->assertOk();
+        $this->assertSame(0, $withHead->json('data.household.no_active_head'));
+        $this->assertSame(1, $withHead->json('data.household.have_under_18'));
+        $this->assertGreaterThanOrEqual(1, $withHead->json('data.household.head_gender.male'));
+
+        $headless = Family::factory()->create(['tenant_id' => $ctx['tenant']->id, 'status' => 'active']);
+        FamilyMember::factory()->spouse()->active()->create([
+            'family_id' => $headless->id,
+            'relationship_to_head' => 'spouse',
+        ]);
+
+        FamilyDashboardCache::bump($ctx['tenant']->id);
+        $mixed = $this->getJson('/api/families/dashboard')->assertOk();
+        $this->assertSame(1, $mixed->json('data.household.no_active_head'));
+        $this->assertSame(1, $mixed->json('data.attention.no_active_head'));
+    }
+
+    #[Test]
     public function it_counts_each_family_once_in_size_bands_and_lists_empty_households(): void
     {
         $ctx = $this->authenticateAsStaff();

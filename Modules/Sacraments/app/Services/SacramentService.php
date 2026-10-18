@@ -17,6 +17,7 @@ use Modules\Sacraments\Support\SacramentFeatureFlags;
 use Modules\Sacraments\Support\SacramentPrivacyAccess;
 use Modules\Sacraments\Support\SacramentStatus;
 use Modules\Sacraments\Support\SacramentTypeCode;
+use Modules\Family\Models\Person;
 use Modules\Tenants\Support\TenantCacheVersion;
 
 /**
@@ -287,14 +288,20 @@ class SacramentService
 
             $normalized = $this->participantValidator->validateAndNormalize($type, $participantsInput, $tenantId);
             $this->assertRecipientPersonConsistency($data, $normalized);
+            $this->lockResolvedPersonForCreate($tenantId, $data);
 
             $warning = $this->duplicateDetector->detect($tenantId, $type, $data, $normalized);
-            if ($warning !== null && ! $acknowledgeDuplicate) {
-                throw new SacramentBusinessRuleException(
-                    'duplicate_sacrament',
-                    'A similar sacrament may already exist. Set acknowledge_duplicate_warning=true to proceed.',
-                    $warning
-                );
+            if ($warning !== null) {
+                $identityMatch = (bool) ($warning['identity_match'] ?? false);
+                if ($identityMatch || ! $acknowledgeDuplicate) {
+                    throw new SacramentBusinessRuleException(
+                        'duplicate_sacrament',
+                        $identityMatch
+                            ? 'An official register entry already exists for this person in this parish.'
+                            : 'A similar sacrament may already exist. Set acknowledge_duplicate_warning=true to proceed.',
+                        $warning
+                    );
+                }
             }
 
             $denorm = $this->denormMapper->toSacramentAttributes($normalized);
@@ -800,6 +807,38 @@ class SacramentService
         }
 
         return $deleted;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  list<array<string, mixed>>  $normalized
+     */
+    /**
+     * Serialize competing creates for the same resolved person in this tenant.
+     * Locking only matching sacrament rows cannot serialize the empty-set case.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function lockResolvedPersonForCreate(int $tenantId, array $data): void
+    {
+        $personId = $data['person_id'] ?? null;
+        if (! is_string($personId) || $personId === '') {
+            return;
+        }
+
+        $person = Person::query()
+            ->forTenant($tenantId)
+            ->whereKey($personId)
+            ->lockForUpdate()
+            ->first();
+
+        if ($person === null) {
+            throw new SacramentBusinessRuleException(
+                'person_not_found',
+                'Person not found in this parish.',
+                ['person_id' => $personId]
+            );
+        }
     }
 
     /**
