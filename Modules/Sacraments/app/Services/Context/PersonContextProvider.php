@@ -62,7 +62,9 @@ final class PersonContextProvider
 
             $member = FamilyMember::query()
                 ->where('person_id', $person->id)
+                ->where('tenant_id', $tenantId)
                 ->whereNull('deleted_at')
+                ->whereHas('family', fn ($q) => $q->where('tenant_id', $tenantId))
                 ->with('family')
                 ->orderByDesc('updated_at')
                 ->first();

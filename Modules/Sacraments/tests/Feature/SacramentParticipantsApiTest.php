@@ -579,6 +579,146 @@ class SacramentParticipantsApiTest extends TestCase
     }
 
     #[Test]
+    public function profile_summary_alone_does_not_block_baptism_register_create(): void
+    {
+        $this->member->update([
+            'baptism_date' => '2011-12-25',
+            'baptism_church_name' => 'Another Parish Church',
+            'baptism_location_type' => 'other',
+        ]);
+
+        $create = $this->postJson('/api/sacraments', array_merge($this->baptismIdentity(), [
+            'sacrament_type_id' => $this->baptismType->id,
+            'date_administered' => '2011-12-25',
+            'place_administered' => 'Another Parish Church',
+            'family_id' => $this->family->id,
+            'participants' => [
+                [
+                    'role' => 'recipient',
+                    'source' => 'member',
+                    'family_member_id' => $this->member->id,
+                ],
+                [
+                    'role' => 'minister',
+                    'source' => 'external',
+                    'external_full_name' => 'Fr. Profile',
+                    'external_title' => 'Fr.',
+                    'external_minister_role' => 'priest',
+                ],
+            ],
+        ]));
+
+        $create->assertCreated();
+        $this->member->refresh();
+        $this->assertSame('2011-12-25', $this->member->baptism_date?->format('Y-m-d'));
+        $this->assertSame('Another Parish Church', $this->member->baptism_church_name);
+    }
+
+    #[Test]
+    public function existing_person_register_entry_is_a_duplicate_even_when_names_differ(): void
+    {
+        $this->postJson('/api/sacraments', array_merge($this->baptismIdentity(), [
+            'sacrament_type_id' => $this->baptismType->id,
+            'date_administered' => '2011-12-25',
+            'family_id' => $this->family->id,
+            'participants' => [
+                [
+                    'role' => 'recipient',
+                    'source' => 'member',
+                    'family_member_id' => $this->member->id,
+                ],
+                [
+                    'role' => 'minister',
+                    'source' => 'external',
+                    'external_full_name' => 'Fr. First',
+                    'external_title' => 'Fr.',
+                    'external_minister_role' => 'priest',
+                ],
+            ],
+        ]))->assertCreated();
+
+        $duplicate = $this->postJson('/api/sacraments', array_merge($this->baptismIdentity(), [
+            'sacrament_type_id' => $this->baptismType->id,
+            'date_administered' => '2012-01-06',
+            'recipient_name' => 'A Different Display Name',
+            'family_id' => $this->family->id,
+            'participants' => [
+                [
+                    'role' => 'recipient',
+                    'source' => 'member',
+                    'family_member_id' => $this->member->id,
+                ],
+                [
+                    'role' => 'minister',
+                    'source' => 'external',
+                    'external_full_name' => 'Fr. Second',
+                    'external_title' => 'Fr.',
+                    'external_minister_role' => 'priest',
+                ],
+            ],
+        ]));
+
+        $duplicate->assertStatus(422)->assertJsonPath('code', 'duplicate_sacrament');
+
+        $retry = $this->postJson('/api/sacraments', array_merge($this->baptismIdentity(), [
+            'sacrament_type_id' => $this->baptismType->id,
+            'date_administered' => '2012-01-06',
+            'family_id' => $this->family->id,
+            'acknowledge_duplicate_warning' => true,
+            'participants' => [
+                [
+                    'role' => 'recipient',
+                    'source' => 'member',
+                    'family_member_id' => $this->member->id,
+                ],
+                [
+                    'role' => 'minister',
+                    'source' => 'external',
+                    'external_full_name' => 'Fr. Ack',
+                    'external_title' => 'Fr.',
+                    'external_minister_role' => 'priest',
+                ],
+            ],
+        ]));
+        $retry->assertStatus(422)->assertJsonPath('code', 'duplicate_sacrament');
+        $this->assertNotEmpty($retry->json('context.existing_sacrament_id'));
+    }
+
+    #[Test]
+    public function voided_baptism_register_is_not_treated_as_a_live_duplicate(): void
+    {
+        Sacrament::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'family_id' => $this->family->id,
+            'person_id' => $this->member->person_id,
+            'sacrament_type_id' => $this->baptismType->id,
+            'recipient_name' => 'Anna Recipient',
+            'date_administered' => '2010-01-01',
+            'status' => 'voided',
+        ]);
+
+        $this->postJson('/api/sacraments', array_merge($this->baptismIdentity(), [
+            'sacrament_type_id' => $this->baptismType->id,
+            'date_administered' => '2011-12-25',
+            'family_id' => $this->family->id,
+            'participants' => [
+                [
+                    'role' => 'recipient',
+                    'source' => 'member',
+                    'family_member_id' => $this->member->id,
+                ],
+                [
+                    'role' => 'minister',
+                    'source' => 'external',
+                    'external_full_name' => 'Fr. After Void',
+                    'external_title' => 'Fr.',
+                    'external_minister_role' => 'priest',
+                ],
+            ],
+        ]))->assertCreated();
+    }
+
+    #[Test]
     public function it_supports_internal_leadership_minister(): void
     {
         $leader = ChurchLeadership::create([
