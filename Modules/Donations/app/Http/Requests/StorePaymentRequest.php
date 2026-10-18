@@ -45,6 +45,7 @@ class StorePaymentRequest extends FormRequest
             ],
             'source_type' => ['nullable', 'string', 'max:40'],
             'notes' => ['nullable', 'string'],
+            'collection_mode' => ['nullable', 'in:project_installments,mandatory_dues'],
             'allocations' => ['nullable', 'array'],
             'allocations.*.allocatable_type' => ['required_with:allocations', 'in:fund,plan,project,project_installment,due,donation,advance'],
             'allocations.*.allocatable_id' => ['required_with:allocations', 'uuid'],
