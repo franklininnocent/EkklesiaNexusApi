@@ -37,6 +37,7 @@ return [
         'X-Tenant-Country',
         'X-Support-Session-Id',
         'X-Correlation-Id',
+        'Idempotency-Key',
         'X-Marketing-Proxy-Secret',
         'X-Marketing-Client-Ip',
     ],
