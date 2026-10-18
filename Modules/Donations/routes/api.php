@@ -42,6 +42,7 @@ Route::prefix('tenant/donations')->middleware(['donations.security.log', 'auth:a
     Route::get('/dashboard/rollup', [DonationDashboardController::class, 'rollup'])->middleware('entitlement:FINANCIAL_DASHBOARD');
     Route::get('/dashboard/families/{familyId}/summary', [DonationDashboardController::class, 'familySummary']);
     Route::get('/families/{familyId}/financial-profile', [DonationDashboardController::class, 'familyFinancialProfile']);
+    Route::get('/families/{familyId}/collect-dues', [DonationDashboardController::class, 'familyCollectDues']);
     Route::get('/families/{familyId}/financial-profile/print', [DonationDashboardController::class, 'familyStatementPrint']);
     Route::post('/ai/ask', [FinancialAiController::class, 'ask']);
     Route::get('/ai/status', [FinancialAiController::class, 'status']);
