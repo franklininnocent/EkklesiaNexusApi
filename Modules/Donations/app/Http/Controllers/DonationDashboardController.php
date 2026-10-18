@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Modules\Donations\Http\Requests\DashboardDateRangeRequest;
+use Modules\Donations\Http\Requests\FamilyCollectDuesRequest;
 use Modules\Donations\Services\DashboardPersonaService;
+use Modules\Donations\Services\FamilyCollectDuesService;
 use Modules\Donations\Services\DioceseRollupDashboardService;
 use Modules\Donations\Services\DonationDashboardService;
 use Modules\Donations\Services\DonationSavedViewService;
@@ -24,7 +26,8 @@ class DonationDashboardController extends Controller
         private readonly DashboardPersonaService $personaService,
         private readonly DonationSavedViewService $savedViewService,
         private readonly FamilyStatementPrintService $familyStatementPrintService,
-        private readonly FinancialCommandCenterService $commandCenterService
+        private readonly FinancialCommandCenterService $commandCenterService,
+        private readonly FamilyCollectDuesService $collectDuesService
     ) {}
 
     public function summary(DashboardDateRangeRequest $request): JsonResponse
@@ -115,6 +118,34 @@ class DonationDashboardController extends Controller
         return response()->json([
             'success' => true,
             'data' => $profile,
+        ]);
+    }
+
+    public function familyCollectDues(FamilyCollectDuesRequest $request, string $familyId): JsonResponse
+    {
+        $tenantId = app(TenantContext::class)->requireEffectiveTenantId();
+        $validated = $request->validated();
+
+        try {
+            $data = $this->collectDuesService->build($tenantId, $familyId, [
+                'project_id' => $validated['project_id'] ?? null,
+                'page' => $validated['page'] ?? null,
+                'per_page' => $validated['per_page'] ?? null,
+                'scope' => $validated['scope'] ?? null,
+                'bulk_select' => (bool) ($validated['bulk_select'] ?? false),
+            ]);
+        } catch (\RuntimeException $exception) {
+            $status = str_contains($exception->getMessage(), 'does not belong') ? 404 : 422;
+
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], $status);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
         ]);
     }
 

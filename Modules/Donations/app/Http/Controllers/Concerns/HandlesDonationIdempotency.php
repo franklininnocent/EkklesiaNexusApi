@@ -24,11 +24,15 @@ trait HandlesDonationIdempotency
         try {
             return DB::transaction(function () use ($idempotency, $tenantId, $operation, $request, $callback): JsonResponse {
                 $gate = $idempotency->begin($tenantId, $operation, $request);
-                if ($gate && $gate['replay'] && is_array($gate['record']->response_body)) {
-                    $body = $gate['record']->response_body;
-                    $status = (int) ($gate['record']->http_status ?: 200);
+                if ($gate && $gate['replay']) {
+                    if (is_array($gate['record']->response_body)) {
+                        $body = $gate['record']->response_body;
+                        $status = (int) ($gate['record']->http_status ?: 200);
 
-                    return response()->json($body, $status);
+                        return response()->json($body, $status);
+                    }
+
+                    throw new ConflictHttpException('A payment with this idempotency key is already in progress.');
                 }
 
                 $result = $callback();

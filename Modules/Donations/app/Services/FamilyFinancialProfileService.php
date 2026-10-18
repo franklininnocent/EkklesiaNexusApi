@@ -44,7 +44,7 @@ class FamilyFinancialProfileService
         $paymentBreakdown = $this->buildPaymentBreakdown($tenantId, $familyId);
         $mandatory = $this->buildMandatorySummary($tenantId, $familyId, $asOfDate);
         $projectSummary = $this->projectService->getFamilyProjectSummary($tenantId, $familyId);
-        $projectSummary = $this->enrichProjectInstallmentStatus($tenantId, $familyId, $projectSummary);
+        $projectSummary = $this->enrichProjectInstallmentStatus($tenantId, $familyId, $projectSummary, $asOfDate);
         $donationsOfferings = $this->buildDonationsOfferings($tenantId, $familyId, $fyPeriod, $asOfDate);
         $paymentHistory = $this->buildPaymentHistory($tenantId, $familyId);
         $outstandingBalances = $this->buildOutstandingBalances($mandatory, $projectSummary, $donationsOfferings);
@@ -70,8 +70,8 @@ class FamilyFinancialProfileService
                 'pending_due' => $pendingDue,
                 'pending_mandatory_due' => round($pendingMandatoryDue, 2),
                 'pending_project_due' => round($pendingProjectDue, 2),
-                'overdue_count' => $mandatory['totals']['overdue_count'] + $this->countOverdueInstallments($projectSummary, $asOfDate),
-                'overdue_amount' => round($mandatory['totals']['overdue_amount'] + $this->sumOverdueInstallmentAmount($projectSummary, $asOfDate), 2),
+                'overdue_count' => $mandatory['totals']['overdue_count'] + $this->countOverdueInstallmentsForFamily($tenantId, $familyId, $asOfDate),
+                'overdue_amount' => round($mandatory['totals']['overdue_amount'] + $this->sumOverdueInstallmentAmountForFamily($tenantId, $familyId, $asOfDate), 2),
                 'net' => round($paymentBreakdown['total_paid'] - $pendingDue, 2),
                 'voluntary_collected' => $donationsOfferings['lifetime_collected'],
             ],
@@ -604,10 +604,8 @@ class FamilyFinancialProfileService
      * @param  array<string, mixed>  $projectSummary
      * @return array<string, mixed>
      */
-    private function enrichProjectInstallmentStatus(int $tenantId, string $familyId, array $projectSummary): array
+    private function enrichProjectInstallmentStatus(int $tenantId, string $familyId, array $projectSummary, string $businessDate): array
     {
-        $today = now()->toDateString();
-
         foreach ($projectSummary['projects'] as &$project) {
             $installments = ProjectInstallmentDue::forTenant($tenantId)
                 ->where('family_id', $familyId)
@@ -618,10 +616,10 @@ class FamilyFinancialProfileService
                 'total' => $installments->count(),
                 'paid' => $installments->where('status', 'paid')->count(),
                 'pending' => $installments->whereIn('status', ['pending', 'partially_paid'])
-                    ->filter(fn (ProjectInstallmentDue $due) => ($due->due_date?->toDateString() ?? '') >= $today)
+                    ->filter(fn (ProjectInstallmentDue $due) => ($due->due_date?->toDateString() ?? '') >= $businessDate)
                     ->count(),
                 'overdue' => $installments->whereIn('status', ['pending', 'partially_paid'])
-                    ->filter(fn (ProjectInstallmentDue $due) => ($due->due_date?->toDateString() ?? '') < $today)
+                    ->filter(fn (ProjectInstallmentDue $due) => ($due->due_date?->toDateString() ?? '') < $businessDate)
                     ->count(),
             ];
         }
@@ -633,7 +631,7 @@ class FamilyFinancialProfileService
             ->orderByDesc('due_date')
             ->limit(30)
             ->get()
-            ->map(function (ProjectInstallmentDue $due) use ($today): array {
+            ->map(function (ProjectInstallmentDue $due) use ($businessDate): array {
                 $outstanding = ContributionBalance::outstandingForDue($due);
                 $dueDate = $due->due_date?->toDateString();
 
@@ -649,7 +647,7 @@ class FamilyFinancialProfileService
                     'status' => $due->status,
                     'is_overdue' => in_array($due->status, ['pending', 'partially_paid'], true)
                         && $dueDate
-                        && $dueDate < $today,
+                        && $dueDate < $businessDate,
                 ];
             })
             ->values()
@@ -721,24 +719,22 @@ class FamilyFinancialProfileService
         return ContributionBalance::scheduleState($due, $asOfDate) === 'overdue';
     }
 
-    /**
-     * @param  array<string, mixed>  $projectSummary
-     */
-    private function countOverdueInstallments(array $projectSummary, string $businessDate): int
+    private function countOverdueInstallmentsForFamily(int $tenantId, string $familyId, string $businessDate): int
     {
-        return collect($projectSummary['outstanding_installments'] ?? [])
-            ->filter(fn (array $row) => ($row['due_date'] ?? '') < $businessDate)
-            ->count();
+        return ContributionBalance::scopeOverdue(
+            ProjectInstallmentDue::forTenant($tenantId)->where('family_id', $familyId),
+            $businessDate
+        )->count();
     }
 
-    /**
-     * @param  array<string, mixed>  $projectSummary
-     */
-    private function sumOverdueInstallmentAmount(array $projectSummary, string $businessDate): float
+    private function sumOverdueInstallmentAmountForFamily(int $tenantId, string $familyId, string $businessDate): float
     {
-        return (float) collect($projectSummary['outstanding_installments'] ?? [])
-            ->filter(fn (array $row) => ($row['due_date'] ?? '') < $businessDate)
-            ->sum('outstanding_amount');
+        return ContributionBalance::sumFlooredOutstanding(
+            ContributionBalance::scopeOverdue(
+                ProjectInstallmentDue::forTenant($tenantId)->where('family_id', $familyId),
+                $businessDate
+            )
+        );
     }
 
     /**
