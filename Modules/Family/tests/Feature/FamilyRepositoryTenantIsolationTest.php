@@ -33,7 +33,7 @@ class FamilyRepositoryTenantIsolationTest extends TestCase
             'family_id' => $foreign->id,
             'first_name' => 'Updated',
             'last_name' => 'Head',
-            'relationship_to_head' => 'head',
+            'relationship_to_head' => 'self',
             'status' => 'active',
         ]);
 
@@ -61,7 +61,7 @@ class FamilyRepositoryTenantIsolationTest extends TestCase
             'family_id' => $family->id,
             'first_name' => 'Updated',
             'last_name' => 'Head',
-            'relationship_to_head' => 'head',
+            'relationship_to_head' => 'self',
             'status' => 'active',
         ]);
 
@@ -88,7 +88,7 @@ class FamilyRepositoryTenantIsolationTest extends TestCase
             'family_id' => $family->id,
             'first_name' => 'Inactive',
             'last_name' => 'Head',
-            'relationship_to_head' => 'head',
+            'relationship_to_head' => 'self',
             'status' => 'inactive',
             'created_at' => now()->subDay(),
         ]);
@@ -98,7 +98,7 @@ class FamilyRepositoryTenantIsolationTest extends TestCase
             'family_id' => $family->id,
             'first_name' => 'Active',
             'last_name' => 'Head',
-            'relationship_to_head' => 'head',
+            'relationship_to_head' => 'self',
             'status' => 'active',
             'created_at' => now(),
         ]);
@@ -128,12 +128,66 @@ class FamilyRepositoryTenantIsolationTest extends TestCase
             'family_id' => $foreign->id,
             'first_name' => 'Updated',
             'last_name' => 'Head',
-            'relationship_to_head' => 'head',
+            'relationship_to_head' => 'self',
             'status' => 'active',
         ]);
 
         app(FamilyRepository::class)->syncHeadOfFamily($foreign->id);
 
         $this->assertSame('Original Head', $foreign->fresh()->head_of_family);
+    }
+
+    #[Test]
+    public function sync_head_of_family_clears_name_when_no_head_remains(): void
+    {
+        $tenant = Tenant::factory()->active()->create();
+
+        $family = Family::factory()->create([
+            'tenant_id' => $tenant->id,
+            'head_of_family' => 'Stale Head',
+            'status' => 'active',
+        ]);
+
+        FamilyMember::factory()->create([
+            'tenant_id' => $tenant->id,
+            'family_id' => $family->id,
+            'first_name' => 'Only',
+            'last_name' => 'Child',
+            'relationship_to_head' => 'son',
+            'status' => 'active',
+        ]);
+
+        TenantContextBinder::bind($tenant->id);
+
+        app(FamilyRepository::class)->syncHeadOfFamily($family->id);
+
+        $this->assertNull($family->fresh()->head_of_family);
+    }
+
+    #[Test]
+    public function sync_head_of_family_clears_when_only_inactive_head_remains(): void
+    {
+        $tenant = Tenant::factory()->active()->create();
+
+        $family = Family::factory()->create([
+            'tenant_id' => $tenant->id,
+            'head_of_family' => 'Former Head',
+            'status' => 'active',
+        ]);
+
+        FamilyMember::factory()->create([
+            'tenant_id' => $tenant->id,
+            'family_id' => $family->id,
+            'first_name' => 'Former',
+            'last_name' => 'Head',
+            'relationship_to_head' => 'self',
+            'status' => 'inactive',
+        ]);
+
+        TenantContextBinder::bind($tenant->id);
+
+        app(FamilyRepository::class)->syncHeadOfFamily($family->id);
+
+        $this->assertNull($family->fresh()->head_of_family);
     }
 }

@@ -36,9 +36,12 @@ final class MemberProfileSacramentEvidenceProvider
                 'date' => $this->profileEvidence($date, $sourceId),
                 'place' => $this->profileEvidence($place, $sourceId),
                 'parish' => $this->profileEvidence($place, $sourceId),
-                'baptism_location_type' => $member->baptism_location_type ?? 'home_parish',
+                'baptism_location_type' => $member->baptism_location_type,
                 'baptism_church_name' => $member->baptism_church_name,
                 'baptism_church_address' => $member->baptism_church_address,
+                'baptism_godparent_primary' => $member->baptism_godparent_primary,
+                'baptism_godparent_secondary' => $member->baptism_godparent_secondary,
+                'baptism_priest_name' => $member->baptism_priest_name,
             ],
         ];
     }

@@ -300,11 +300,7 @@ class FamilyRepository
             $memberData['baptism_priest_is_home'] = false;
         }
         $member = FamilyMember::create($memberData);
-
-        // Auto-sync head_of_family if this member is designated as head
-        if (isset($memberData['relationship_to_head']) && in_array(strtolower($memberData['relationship_to_head']), ['self', 'head'])) {
-            $this->syncHeadOfFamily($family->id);
-        }
+        $this->syncHeadOfFamily($family->id);
 
         return $member;
     }
@@ -344,10 +340,7 @@ class FamilyRepository
             // Refresh the model to ensure we have the latest data
             $member->refresh();
 
-            // Auto-sync head_of_family if relationship_to_head was changed
-            if (isset($data['relationship_to_head']) && in_array(strtolower($data['relationship_to_head']), ['self', 'head'])) {
-                $this->syncHeadOfFamily($member->family_id);
-            }
+            $this->syncHeadOfFamily($member->family_id);
         }
 
         return $updated;
@@ -358,7 +351,13 @@ class FamilyRepository
      */
     public function deleteMember(FamilyMember $member): ?bool
     {
-        return $member->delete();
+        $familyId = (string) $member->family_id;
+        $deleted = $member->delete();
+        if ($deleted) {
+            $this->syncHeadOfFamily($familyId);
+        }
+
+        return $deleted;
     }
 
     /**
@@ -400,11 +399,13 @@ class FamilyRepository
         $headMember = FamilyMember::query()
             ->where('family_id', $familyId)
             ->whereIn('relationship_to_head', ['self', 'head'])
-            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
+            ->where('status', 'active')
             ->orderBy('created_at')
             ->first();
 
         if ($headMember === null) {
+            $family->update(['head_of_family' => null]);
+
             return;
         }
 

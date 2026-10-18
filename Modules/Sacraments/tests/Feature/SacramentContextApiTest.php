@@ -246,6 +246,20 @@ class SacramentContextApiTest extends TestCase
     }
 
     #[Test]
+    public function empty_profile_and_register_are_not_found(): void
+    {
+        $response = $this->getJson('/api/sacraments/context?'.http_build_query([
+            'family_member_id' => $this->member->id,
+            'workflow' => 'BAPTISM',
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('data.record_status.baptism', SacramentRecordStatus::NOT_FOUND)
+            ->assertJsonPath('data.record_status.baptism_register', SacramentRecordStatus::NOT_FOUND)
+            ->assertJsonPath('data.sacraments.baptism.evidence_tier', null);
+    }
+
+    #[Test]
     public function profile_only_baptism_home_parish_surfaces_in_context(): void
     {
         $this->member->update([
@@ -353,5 +367,34 @@ class SacramentContextApiTest extends TestCase
 
         $conflicts = $response->json('data.conflicts');
         $this->assertTrue(collect($conflicts)->contains('field', 'baptism_date'));
+    }
+
+    #[Test]
+    public function profile_baptism_exposes_church_and_godparent_fields_without_register(): void
+    {
+        $this->member->update([
+            'baptism_date' => '2011-12-25',
+            'baptism_location_type' => 'other',
+            'baptism_church_name' => 'Sacred Heart of Jesus Church Demo',
+            'baptism_church_address' => 'Kadayal, Kanyakumari, Tamil Nadu, 629101',
+            'baptism_godparent_primary' => 'Felix A. Romo',
+            'baptism_godparent_secondary' => 'Kristi D. Carr',
+        ]);
+
+        $response = $this->getJson('/api/sacraments/context?'.http_build_query([
+            'family_member_id' => $this->member->id,
+            'workflow' => 'BAPTISM',
+            'participant_role' => 'recipient',
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('data.record_status.baptism', SacramentRecordStatus::FOUND)
+            ->assertJsonPath('data.record_status.baptism_register', SacramentRecordStatus::NOT_FOUND)
+            ->assertJsonPath('data.sacraments.baptism.evidence_tier', 'MEMBER_PROFILE')
+            ->assertJsonPath('data.sacraments.baptism.evidence.date.value', '2011-12-25')
+            ->assertJsonPath('data.sacraments.baptism.evidence.baptism_church_name', 'Sacred Heart of Jesus Church Demo')
+            ->assertJsonPath('data.sacraments.baptism.evidence.baptism_godparent_primary', 'Felix A. Romo')
+            ->assertJsonPath('data.sacraments.baptism.evidence.baptism_godparent_secondary', 'Kristi D. Carr')
+            ->assertJsonPath('data.sacraments.baptism.evidence.sacrament_id', null);
     }
 }
