@@ -90,7 +90,7 @@ final class MarketingSeoCheckParser
             } catch (\Throwable) {
                 $hostBad[] = $u;
             }
-            if (preg_match('/\/es\b|localhost|127\.0\.0\.1|matchpoint|\/api\/|\/preview\//i', $u)) {
+            if (preg_match('/\/es\b|localhost|127\.0\.0\.1|\/api\/|\/preview\//i', $u)) {
                 $forbidden[] = $u;
             }
         }

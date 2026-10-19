@@ -19,7 +19,6 @@ return [
     ],
 
     'leak_urls' => [
-        'http://dwm.matchpointgps.in/',
         'http://139.59.18.151/',
     ],
 
