@@ -46,14 +46,59 @@ class LimitEnforcementService implements TenantLimitGuard
     public function check(Tenant $tenant, string $code, int $adding = 1): array
     {
         $code = strtoupper($code);
-        $limit = $this->resolver->resolve($tenant)->limit($code);
-        if ($limit === null) {
+        $feature = $this->catalog->feature($code);
+        $resolved = $this->resolver->resolve($tenant);
+        $enforced = EntitlementEngineMode::isEnforcing() && $this->policies->blocksOverLimit();
+
+        if (! $feature || ! in_array($feature['type'], ['LIMIT', 'QUOTA', 'USAGE'], true)) {
+            return [
+                'allowed' => ! $enforced,
+                'limit' => null,
+                'usage' => null,
+                'remaining' => null,
+                'enforced' => $enforced,
+                'configuration_missing' => true,
+            ];
+        }
+
+        if (! $resolved->hasEntitlement($code)) {
+            return [
+                'allowed' => ! $enforced,
+                'limit' => null,
+                'usage' => null,
+                'remaining' => null,
+                'enforced' => $enforced,
+                'configuration_missing' => true,
+            ];
+        }
+
+        if ($resolved->limitIsUnlimited($code)) {
             return ['allowed' => true, 'limit' => null, 'usage' => null, 'remaining' => null, 'enforced' => false];
         }
 
-        $usage = $this->usage->current((int) $tenant->getKey(), $code);
+        $limit = $resolved->limit($code);
+        if ($limit === 0) {
+            return [
+                'allowed' => max(0, $adding) === 0,
+                'limit' => 0,
+                'usage' => $this->usage->current((int) $tenant->getKey(), $code),
+                'remaining' => 0,
+                'enforced' => $enforced,
+            ];
+        }
+
+        $usage = strtoupper($code) === 'STORAGE_MB'
+            ? $this->usage->currentFresh((int) $tenant->getKey(), $code)
+            : $this->usage->current((int) $tenant->getKey(), $code);
         if ($usage === null) {
-            return ['allowed' => true, 'limit' => $limit, 'usage' => null, 'remaining' => null, 'enforced' => false];
+            return [
+                'allowed' => ! $enforced,
+                'limit' => $limit,
+                'usage' => null,
+                'remaining' => null,
+                'enforced' => $enforced,
+                'configuration_missing' => true,
+            ];
         }
 
         return [
@@ -61,7 +106,7 @@ class LimitEnforcementService implements TenantLimitGuard
             'limit' => $limit,
             'usage' => $usage,
             'remaining' => max(0, $limit - $usage),
-            'enforced' => EntitlementEngineMode::isEnforcing() && $this->policies->blocksOverLimit(),
+            'enforced' => $enforced,
         ];
     }
 
@@ -74,8 +119,16 @@ class LimitEnforcementService implements TenantLimitGuard
         if (! $tenant->getKey() || EntitlementEngineMode::isLegacy()) {
             return;
         }
+        if ($adding <= 0) {
+            return;
+        }
+
         if ($flow !== null && $this->policies->isFlowExempt($flow)) {
             return;
+        }
+
+        if (EntitlementEngineMode::isEnforcing() && DB::transactionLevel() === 0) {
+            throw SubscriptionException::invalidState('Plan limit checks must run inside a database transaction.');
         }
 
         if (DB::transactionLevel() > 0) {
@@ -93,6 +146,17 @@ class LimitEnforcementService implements TenantLimitGuard
             'current_usage' => $result['usage'],
             'adding' => $adding,
         ];
+
+        if (! empty($result['configuration_missing'])) {
+            if (! $result['enforced']) {
+                Log::warning('subscriptions.limit_configuration_missing', $context + ['tenant_id' => (int) $tenant->getKey()]);
+
+                return;
+            }
+
+            $this->audit->denial('limit_configuration_missing', (int) $tenant->getKey(), $context);
+            throw SubscriptionException::entitlementConfigurationMissing(strtoupper($code));
+        }
 
         if (! $result['enforced']) {
             Log::info('subscriptions.limit_would_block', $context + ['tenant_id' => (int) $tenant->getKey()]);

@@ -195,10 +195,15 @@ class SecurityHardeningTest extends TestCase
     {
         config(['tenants.subscription.write_policy' => 'read_only_when_expired']);
 
+        $tenant = Tenant::factory()->create();
         $user = User::factory()->create([
-            'tenant_id' => 999999,
+            'tenant_id' => $tenant->id,
             'active' => 1,
         ]);
+
+        \Illuminate\Support\Facades\Schema::withoutForeignKeyConstraints(function () use ($tenant): void {
+            $tenant->forceDelete();
+        });
 
         $this->actingAs($user, 'api')
             ->postJson('/api/families', ['family_name' => 'Should Not Save'])

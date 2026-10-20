@@ -109,7 +109,7 @@ class TenantPlanAssignmentApiTest extends TestCase
         $tenantB = Tenant::factory()->create();
         $this->assignPlan($tenantA, 'STARTER');
         $this->assignPlan($tenantB, 'STARTER');
-        $this->asEkklesiaAdmin();
+        $this->asSuperAdmin();
         $this->useEntitlementEngine('enforce');
 
         $overrideId = $this->postJson("/api/admin/subscriptions/tenants/{$tenantA->id}/overrides", [

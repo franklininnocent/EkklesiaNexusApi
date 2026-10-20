@@ -10,7 +10,10 @@ class PlatformHealthApiTest extends TestCase
     #[Test]
     public function platform_health_endpoint_returns_dependency_snapshot(): void
     {
-        config(['tenants.platform.health.token' => null]);
+        config([
+            'tenants.platform.health.token' => null,
+            'cache.default' => 'array',
+        ]);
 
         $response = $this->getJson('/api/platform/health');
 

@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\MinistriesAssociations\Models\Organization;
 use Modules\MinistriesAssociations\Models\OrganizationCategory;
 use Modules\MinistriesAssociations\Models\OrganizationType;
+use Modules\Authentication\Models\User;
 use Modules\MinistriesAssociations\Services\MinistriesDashboardService;
 use Modules\Tenants\Models\Tenant;
 use PHPUnit\Framework\Attributes\Test;
@@ -19,7 +20,7 @@ class MinistriesDashboardTypeBreakdownTest extends TestCase
     public function active_by_type_lists_tenant_types_with_counts_including_zeros(): void
     {
         $tenant = Tenant::factory()->create();
-        $userId = 1;
+        $userId = (int) User::factory()->create(['tenant_id' => $tenant->id])->id;
 
         $choirType = OrganizationType::query()->create([
             'tenant_id' => $tenant->id,
@@ -110,7 +111,7 @@ class MinistriesDashboardTypeBreakdownTest extends TestCase
     public function executive_summary_issues_fewer_queries_than_full_summary(): void
     {
         $tenant = Tenant::factory()->create();
-        $userId = 1;
+        $userId = (int) User::factory()->create(['tenant_id' => $tenant->id])->id;
         $type = OrganizationType::query()->create([
             'tenant_id' => $tenant->id,
             'code' => 'choir',

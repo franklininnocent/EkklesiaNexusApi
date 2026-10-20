@@ -90,7 +90,7 @@ class MarketingSeoMonitoringTest extends TestCase
 
     public function test_non_super_admin_forbidden(): void
     {
-        $this->asParishAdmin();
+        $this->asTenantAdmin();
         $this->getJson('/api/admin/marketing/seo-monitoring/snapshot')->assertForbidden();
     }
 
@@ -121,7 +121,8 @@ class MarketingSeoMonitoringTest extends TestCase
 
         $this->assertFalse($snapshot['snapshot_unavailable']);
         $this->assertNotNull($snapshot['cms']['completed_at']);
-        $this->assertNull($snapshot['production']);
+        $this->assertTrue($snapshot['production']['never_run'] ?? false);
+        $this->assertSame([], $snapshot['production']['checks'] ?? null);
 
         $notRun = collect($snapshot['cms']['checks'])->contains(
             fn (array $c) => ($c['source'] ?? '') === 'production_http' && ($c['status'] ?? '') === 'not_run',
@@ -156,7 +157,8 @@ class MarketingSeoMonitoringTest extends TestCase
         $home = $checks->firstWhere('check_id', 'http-/');
         $this->assertNotNull($home);
         $this->assertSame('error', $home['status']);
-        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => str_starts_with((string) $request->url(), 'https://ekklesianexus.com'));
+        Http::assertNotSent(fn ($request) => str_contains((string) $request->url(), '127.0.0.1'));
     }
 
     public function test_not_run_checks_are_not_counted_as_passed(): void
@@ -182,14 +184,13 @@ class MarketingSeoMonitoringTest extends TestCase
         $seo['pages']['terms']['seoTitle'] = 'Same Title Here';
         $payload['seo'] = $seo;
         $this->asSuperAdmin();
-        $this->postJson('/api/admin/marketing/content/publish', ['payload' => $payload])->assertCreated();
+        $response = $this->postJson('/api/admin/marketing/content/publish', ['payload' => $payload])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false);
 
-        $findings = $this->postJson('/api/admin/marketing/seo-monitoring/scans', [
-            'include_production' => false,
-        ])->json('data.findings');
-
-        $this->assertTrue(
-            collect($findings)->contains(fn (array $f) => str_contains((string) ($f['check_id'] ?? ''), 'cms-duplicate-title')),
+        $this->assertStringContainsString(
+            'Duplicate seoTitle',
+            (string) $response->json('message'),
         );
     }
 }

@@ -90,8 +90,8 @@ class PlanCatalogController extends Controller
             ->current()
             ->when($filters['version_id'] ?? null, fn ($q, $id) => $q->where('plan_version_id', (int) $id))
             ->when($filters['search'] ?? null, function ($q, string $search) {
-                $term = '%'.addcslashes($search, '%_\\').'%';
-                $q->whereHas('tenant', fn ($t) => $t->where('name', 'like', $term));
+                $term = '%'.addcslashes(mb_strtolower($search), '%_\\').'%';
+                $q->whereHas('tenant', fn ($t) => $t->whereRaw('LOWER(name) LIKE ?', [$term]));
             })
             ->with(['tenant', 'version'])
             ->orderBy('tenant_id')

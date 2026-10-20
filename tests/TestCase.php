@@ -20,6 +20,13 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config([
+            'queue.default' => 'sync',
+            'applicationaccess.telemetry_enabled' => filter_var(
+                env('APPLICATION_ACCESS_TELEMETRY_ENABLED', false),
+                FILTER_VALIDATE_BOOLEAN
+            ),
+        ]);
         Cache::flush();
         User::flushRequestPermissionCache();
         TenantTimezone::flush();

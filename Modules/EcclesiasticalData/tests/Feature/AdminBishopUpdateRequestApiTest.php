@@ -165,15 +165,16 @@ class AdminBishopUpdateRequestApiTest extends TestCase
             ->update(['bishop_id' => $incumbent->id]);
 
         $service = app(BishopUpdateRequestService::class);
+        $submitterId = $this->createChurchSubmitterId();
         $draft = $service->createDraft(
             $this->churchTenant->id,
             $this->diocese->id,
             BishopUpdateRequestType::ChangeCurrentBishop,
             ['full_name' => 'Bishop Successor', 'given_name' => 'Successor'],
             ['effective_date' => '2026-03-01', 'end_reason' => 'retirement'],
-            1,
+            $submitterId,
         );
-        $submitted = $service->submit($draft->id, $this->churchTenant->id, 1, 1);
+        $submitted = $service->submit($draft->id, $this->churchTenant->id, (int) $draft->fresh()->version, $submitterId);
 
         $response = $this->postJson("/api/ecclesiastical/bishop-update-requests/{$submitted->id}/approve", [
             'version' => $submitted->version,
@@ -213,25 +214,26 @@ class AdminBishopUpdateRequestApiTest extends TestCase
         Storage::fake('public');
 
         $service = app(BishopUpdateRequestService::class);
+        $submitterId = $this->createChurchSubmitterId();
         $draft = $service->createDraft(
             $this->churchTenant->id,
             $this->diocese->id,
             BishopUpdateRequestType::ChangeCurrentBishop,
             ['full_name' => 'Bishop Portrait'],
             ['effective_date' => '2026-03-01'],
-            1,
+            $submitterId,
         );
 
         $withPhoto = $service->uploadPendingPhoto(
             $draft->id,
             $this->churchTenant->id,
             UploadedFile::fake()->image('portrait.jpg', 140, 140),
-            1,
+            $submitterId,
         );
 
         $this->assertDatabaseMissing('bishops', ['full_name' => 'Bishop Portrait']);
 
-        $submitted = $service->submit($withPhoto->id, $this->churchTenant->id, $withPhoto->version, 1);
+        $submitted = $service->submit($withPhoto->id, $this->churchTenant->id, (int) $withPhoto->version, $submitterId);
 
         $this->postJson("/api/ecclesiastical/bishop-update-requests/{$submitted->id}/approve", [
             'version' => $submitted->version,
@@ -275,16 +277,22 @@ class AdminBishopUpdateRequestApiTest extends TestCase
     private function createSubmittedRequest(string $bishopName)
     {
         $service = app(BishopUpdateRequestService::class);
+        $submitterId = $this->createChurchSubmitterId();
         $draft = $service->createDraft(
             $this->churchTenant->id,
             $this->diocese->id,
             BishopUpdateRequestType::ChangeCurrentBishop,
             ['full_name' => $bishopName],
             ['effective_date' => '2026-03-01'],
-            1,
+            $submitterId,
         );
 
-        return $service->submit($draft->id, $this->churchTenant->id, 1, 1);
+        return $service->submit($draft->id, $this->churchTenant->id, (int) $draft->fresh()->version, $submitterId);
+    }
+
+    private function createChurchSubmitterId(): int
+    {
+        return (int) User::factory()->create(['tenant_id' => $this->churchTenant->id])->id;
     }
 
     private function createReviewer(): User

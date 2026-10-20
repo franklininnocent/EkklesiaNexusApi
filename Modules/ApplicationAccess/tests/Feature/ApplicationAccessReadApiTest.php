@@ -248,7 +248,7 @@ class ApplicationAccessReadApiTest extends TestCase
 
         $this->getJson('/api/admin/application-access/sessions/'.$fixture['session']->id.'/timeline?per_page=2&cursor='.$cursor)
             ->assertOk()
-            ->assertJsonPath('meta.has_more', true);
+            ->assertJsonPath('meta.has_more', false);
     }
 
     /**

@@ -14,8 +14,8 @@ use Modules\Tenants\Models\Tenant;
 /**
  * Resolves effective tenant entitlements.
  *
- * Order: plan version entitlements → tenant overrides in effect → subscription custom
- * limits → dependency enforcement → core features forced on.
+ * Order: plan version entitlements → subscription custom limits → tenant overrides in effect
+ * → dependency enforcement → core features forced on (boolean only for limit features).
  * Tenants without a CURRENT subscription fall back to LegacyEntitlementSource.
  */
 class EntitlementResolver
@@ -135,6 +135,16 @@ class EntitlementResolver
             $features[$code]['tier'] = $entitlement->tier_value;
         }
 
+        foreach ($customLimits as $code => $value) {
+            $code = strtoupper((string) $code);
+            if (! isset($features[$code]) || ! in_array($features[$code]['type'], ['LIMIT', 'QUOTA', 'USAGE'], true)) {
+                continue;
+            }
+            $features[$code]['enabled'] = true;
+            $features[$code]['value'] = $value === null ? null : max(0, (int) $value);
+            $features[$code]['source'] = 'custom_limit';
+        }
+
         $validUntil = null;
         $now = CarbonImmutable::now();
 
@@ -159,22 +169,14 @@ class EntitlementResolver
             $features[$code] = $this->applyOverride($features[$code], $override);
         }
 
-        foreach ($customLimits as $code => $value) {
-            $code = strtoupper((string) $code);
-            if (! isset($features[$code]) || ! in_array($features[$code]['type'], ['LIMIT', 'QUOTA', 'USAGE'], true)) {
-                continue;
-            }
-            $features[$code]['enabled'] = true;
-            $features[$code]['value'] = $value === null ? null : max(0, (int) $value);
-            $features[$code]['source'] = 'custom_limit';
-        }
-
         $features = DependencyEnforcer::apply($features, $this->catalog);
 
         foreach ($features as $code => $entry) {
             if ($this->catalog->feature($code)['is_core'] ?? false) {
                 $features[$code]['enabled'] = true;
-                $features[$code]['source'] = 'core';
+                if (! in_array($entry['type'], ['LIMIT', 'QUOTA', 'USAGE'], true)) {
+                    $features[$code]['source'] = 'core';
+                }
             }
         }
 

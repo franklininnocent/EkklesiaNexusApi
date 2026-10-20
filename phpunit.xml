@@ -26,7 +26,7 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
@@ -36,7 +36,7 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="SUPER_ADMIN_EMAIL" value="super-admin-notify@example.test"/>
         <env name="SUPER_ADMIN_NAME" value="EkklesiaNexus Super Admin"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
@@ -44,6 +44,7 @@
         <env name="TENANT_ORM_GLOBAL_SCOPE" value="false"/>
         <env name="TENANT_RLS_ENABLED" value="false"/>
         <env name="TENANT_API_RATE_LIMIT_ENABLED" value="false"/>
-        <env name="APPLICATION_ACCESS_TELEMETRY_ENABLED" value="false"/>
+        <env name="APPLICATION_ACCESS_TELEMETRY_ENABLED" value="false" force="true"/>
+        <env name="MARKETING_CAPTCHA_TEST_SEEDING" value="true" force="true"/>
     </php>
 </phpunit>

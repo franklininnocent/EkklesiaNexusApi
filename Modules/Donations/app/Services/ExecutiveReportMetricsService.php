@@ -416,7 +416,7 @@ class ExecutiveReportMetricsService
             $this->applyDashboardFamilyScope($query, $tenantId, $bccFilter, $projectFilter);
 
             return ContributionBalance::sumFlooredOutstanding(
-                ContributionBalance::scopeRemainingCollectable($query, $businessDate)
+                ContributionBalance::scopeProjectInstallmentRemainingCollectable($query, $businessDate)
             );
         }
 
@@ -600,9 +600,10 @@ class ExecutiveReportMetricsService
             $query = ProjectInstallmentDue::forTenant($tenantId);
             $projectFilter->applyToProjectInstallmentDueQuery($query, $tenantId);
             $this->applyDashboardFamilyScope($query, $tenantId, $bccFilter, $projectFilter);
+            $query->whereDate('due_date', '<=', $businessDate);
 
             return MoneyMath::toApiNumber(
-                ContributionBalance::sumCollectable($query, $businessDate)
+                ContributionBalance::sumOutstanding($query)
             );
         }
 
@@ -944,11 +945,11 @@ class ExecutiveReportMetricsService
             $next14Query = ProjectInstallmentDue::forTenant($tenantId);
             $projectFilter->applyToProjectInstallmentDueQuery($next14Query, $tenantId);
             $this->applyDashboardFamilyScope($next14Query, $tenantId, $bccFilter, $projectFilter);
-            ContributionBalance::scopeDueNextDays($next14Query, $parishToday, 14);
+            ContributionBalance::scopeProjectInstallmentDueNextDays($next14Query, $parishToday, 14);
             $laterQuery = ProjectInstallmentDue::forTenant($tenantId);
             $projectFilter->applyToProjectInstallmentDueQuery($laterQuery, $tenantId);
             $this->applyDashboardFamilyScope($laterQuery, $tenantId, $bccFilter, $projectFilter);
-            ContributionBalance::scopeDueAfterDays($laterQuery, $parishToday, 14);
+            ContributionBalance::scopeProjectInstallmentDueAfterDays($laterQuery, $parishToday, 14);
         } else {
             $next14Query = ContributionDue::forTenant($tenantId);
             $bccFilter->applyToContributionDueQuery($next14Query, $tenantId);

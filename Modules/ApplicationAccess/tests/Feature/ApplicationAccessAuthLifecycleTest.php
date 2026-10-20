@@ -11,6 +11,7 @@ use Modules\ApplicationAccess\Models\ApplicationSecurityEvent;
 use Modules\ApplicationAccess\Support\ApplicationAccessEnums;
 use Modules\ApplicationAccess\Support\IdentifierMasker;
 use App\Services\TokenService;
+use App\Support\OAuthAccessTokenId;
 use Modules\Authentication\Models\Role;
 use Modules\Authentication\Models\User;
 use Modules\Tenants\Models\Tenant;
@@ -51,9 +52,9 @@ class ApplicationAccessAuthLifecycleTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('message', 'Login successful');
 
-        $tokenId = (string) DB::table('oauth_access_tokens')
+        $tokenId = OAuthAccessTokenId::normalize((string) DB::table('oauth_access_tokens')
             ->where('user_id', $user->id)
-            ->value('id');
+            ->value('id'));
 
         $session = ApplicationAccessSession::query()
             ->where('oauth_access_token_id', $tokenId)
@@ -122,9 +123,9 @@ class ApplicationAccessAuthLifecycleTest extends TestCase
             'password' => 'password',
         ])->assertOk();
 
-        $firstTokenId = (string) DB::table('oauth_access_tokens')
+        $firstTokenId = OAuthAccessTokenId::normalize((string) DB::table('oauth_access_tokens')
             ->where('user_id', $user->id)
-            ->value('id');
+            ->value('id'));
 
         $firstSession = ApplicationAccessSession::query()
             ->where('oauth_access_token_id', $firstTokenId)
@@ -142,10 +143,10 @@ class ApplicationAccessAuthLifecycleTest extends TestCase
         $this->assertSame('rotated', $firstSession->end_reason);
         $this->assertNotNull($firstSession->ended_at);
 
-        $secondTokenId = (string) DB::table('oauth_access_tokens')
+        $secondTokenId = OAuthAccessTokenId::normalize((string) DB::table('oauth_access_tokens')
             ->where('user_id', $user->id)
             ->where('revoked', false)
-            ->value('id');
+            ->value('id'));
 
         $secondSession = ApplicationAccessSession::query()
             ->where('oauth_access_token_id', $secondTokenId)

@@ -31,7 +31,13 @@ class TenantSubscriptionController extends Controller
 
     public function show(int $tenant): JsonResponse
     {
-        return response()->json(['success' => true, 'data' => $this->presenter->adminTenantSubscription($this->tenant($tenant))]);
+        $actor = request()->user();
+        $includeOverrides = $actor !== null && $actor->isSuperAdmin();
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->presenter->adminTenantSubscription($this->tenant($tenant), $includeOverrides),
+        ]);
     }
 
     public function preview(PreviewPlanChangeRequest $request, int $tenant): JsonResponse
@@ -66,7 +72,10 @@ class TenantSubscriptionController extends Controller
         return response()->json([
             'success' => true,
             'message' => $subscription->record_status === 'PENDING' ? 'Plan change scheduled.' : 'Plan updated.',
-            'data' => $this->presenter->adminTenantSubscription($tenantModel->fresh()),
+            'data' => $this->presenter->adminTenantSubscription(
+                $tenantModel->fresh(),
+                $request->user()?->isSuperAdmin() ?? false
+            ),
         ]);
     }
 

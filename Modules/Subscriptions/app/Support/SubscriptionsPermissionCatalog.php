@@ -10,7 +10,7 @@ use Modules\RolesAndPermissions\Models\Permission;
  * Idempotent platform permission catalog for subscription administration.
  *
  * Super Admin owns the catalog (publish/retire plans, features, policies).
- * Ekklesia Admin operates it (view, assign tenants, overrides, usage, audit, requests).
+ * Ekklesia Admin operates it (view, assign tenants, usage, audit, requests). Overrides are Super Admin only.
  */
 final class SubscriptionsPermissionCatalog
 {
@@ -62,7 +62,6 @@ final class SubscriptionsPermissionCatalog
     public const EKKLESIA_ADMIN_DEFAULT = [
         self::PLANS_VIEW,
         self::TENANTS_MANAGE,
-        self::OVERRIDES_MANAGE,
         self::USAGE_VIEW,
         self::AUDIT_VIEW,
         self::REQUESTS_REVIEW,
@@ -134,7 +133,16 @@ final class SubscriptionsPermissionCatalog
                 $ekklesiaAdmin,
                 array_map(static fn (string $name) => $permissionIds[$name], self::EKKLESIA_ADMIN_DEFAULT)
             );
+            self::detachRolePermission($ekklesiaAdmin, (int) $permissionIds[self::OVERRIDES_MANAGE]);
         }
+    }
+
+    private static function detachRolePermission(Role $role, int $permissionId): void
+    {
+        DB::table('permission_role')
+            ->where('role_id', $role->id)
+            ->where('permission_id', $permissionId)
+            ->delete();
     }
 
     /**

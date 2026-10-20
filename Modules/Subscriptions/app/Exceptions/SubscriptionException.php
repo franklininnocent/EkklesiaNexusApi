@@ -16,6 +16,8 @@ class SubscriptionException extends RuntimeException implements Responsable
 
     public const ENTITLEMENT_LIMIT_REACHED = 'ENTITLEMENT_LIMIT_REACHED';
 
+    public const ENTITLEMENT_CONFIGURATION_MISSING = 'ENTITLEMENT_CONFIGURATION_MISSING';
+
     public const PLAN_NOT_AVAILABLE = 'PLAN_NOT_AVAILABLE';
 
     public const PLAN_VERSION_NOT_ACTIVE = 'PLAN_VERSION_NOT_ACTIVE';
@@ -62,6 +64,16 @@ class SubscriptionException extends RuntimeException implements Responsable
             'feature' => $featureCode,
             'upgrade_available' => $upgradeAvailable,
         ]);
+    }
+
+    public static function entitlementConfigurationMissing(string $featureCode): self
+    {
+        return new self(
+            self::ENTITLEMENT_CONFIGURATION_MISSING,
+            'This plan limit is not configured. Contact Ekklesia support.',
+            503,
+            ['feature' => strtoupper($featureCode)],
+        );
     }
 
     public static function limitReached(string $featureCode, string $unitLabel, int $limit, int $currentUsage, bool $upgradeAvailable = true): self

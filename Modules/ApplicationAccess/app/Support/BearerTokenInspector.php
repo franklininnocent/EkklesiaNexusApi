@@ -2,6 +2,8 @@
 
 namespace Modules\ApplicationAccess\Support;
 
+use App\Support\OAuthAccessTokenId;
+
 final class BearerTokenInspector
 {
     public function extractAccessTokenId(?string $bearerToken): ?string
@@ -22,7 +24,7 @@ final class BearerTokenInspector
 
         $jti = $payload['jti'] ?? null;
 
-        return is_string($jti) && $jti !== '' ? $jti : null;
+        return is_string($jti) ? OAuthAccessTokenId::normalize($jti) : null;
     }
 
     private function base64UrlDecode(string $value): string

@@ -162,14 +162,18 @@ class ChurchBishopUpdateRequestApiTest extends TestCase
     public function it_lists_own_tenant_requests_only(): void
     {
         $otherTenant = Tenant::factory()->active()->create();
+        $otherUser = User::factory()->create([
+            'tenant_id' => $otherTenant->id,
+            'active' => 1,
+        ]);
         BishopUpdateRequest::query()->create([
             'tenant_id' => $otherTenant->id,
             'diocese_id' => ChurchProfile::query()->where('tenant_id', $this->tenant->id)->value('archdiocese_id'),
             'request_type' => BishopUpdateRequestType::ChangeCurrentBishop,
             'proposed_bishop_data' => ['full_name' => 'Foreign'],
             'status' => BishopUpdateRequestStatus::Submitted,
-            'created_by' => 1,
-            'updated_by' => 1,
+            'created_by' => $otherUser->id,
+            'updated_by' => $otherUser->id,
         ]);
 
         $this->postJson('/api/tenant/bishop-updates', [
@@ -336,14 +340,18 @@ class ChurchBishopUpdateRequestApiTest extends TestCase
         \Illuminate\Support\Facades\Storage::fake('public');
 
         $otherTenant = Tenant::factory()->active()->create();
+        $otherUser = User::factory()->create([
+            'tenant_id' => $otherTenant->id,
+            'active' => 1,
+        ]);
         $foreign = BishopUpdateRequest::query()->create([
             'tenant_id' => $otherTenant->id,
             'diocese_id' => $this->diocese->id,
             'request_type' => BishopUpdateRequestType::CorrectInformation,
             'proposed_bishop_data' => ['full_name' => 'Foreign Photo'],
             'status' => BishopUpdateRequestStatus::Draft,
-            'created_by' => 1,
-            'updated_by' => 1,
+            'created_by' => $otherUser->id,
+            'updated_by' => $otherUser->id,
         ]);
 
         $this->postJson("/api/tenant/bishop-updates/{$foreign->id}/photo", [

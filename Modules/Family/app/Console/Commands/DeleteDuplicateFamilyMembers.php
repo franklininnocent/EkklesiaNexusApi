@@ -167,7 +167,7 @@ class DeleteDuplicateFamilyMembers extends Command
                 return $q->where('family_id', $familyId);
             })
             ->groupBy('family_id', 'first_name', 'last_name')
-            ->having('count', '>', 1)
+            ->havingRaw('COUNT(*) > 1')
             ->orderBy('family_id')
             ->orderBy('first_name')
             ->orderBy('last_name');

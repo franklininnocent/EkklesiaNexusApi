@@ -119,9 +119,9 @@ Route::middleware('auth:api')->group(function () {
             Route::post('/pending/cancel', [TenantSubscriptionController::class, 'cancelPending'])
                 ->middleware('subscriptions.platform.permission:subscriptions.tenants.manage')->name('pending.cancel');
             Route::post('/overrides', [TenantSubscriptionController::class, 'grantOverride'])
-                ->middleware('subscriptions.platform.permission:subscriptions.overrides.manage')->name('overrides.grant');
+                ->middleware('subscriptions.super_admin.override')->name('overrides.grant');
             Route::post('/overrides/{override}/revoke', [TenantSubscriptionController::class, 'revokeOverride'])
-                ->middleware('subscriptions.platform.permission:subscriptions.overrides.manage')->whereNumber('override')->name('overrides.revoke');
+                ->middleware('subscriptions.super_admin.override')->whereNumber('override')->name('overrides.revoke');
         });
 
         Route::get('/policies', [SubscriptionPolicyController::class, 'show'])->middleware($view)->name('policies.show');

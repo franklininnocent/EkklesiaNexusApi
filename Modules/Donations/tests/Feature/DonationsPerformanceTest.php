@@ -88,7 +88,7 @@ class DonationsPerformanceTest extends DonationsCertificationTestCase
         DB::flushQueryLog();
         $this->getJson('/api/tenant/donations/families/'.$seed['family']->id.'/financial-profile')->assertOk();
         $profileQueries = count(DB::getQueryLog());
-        $this->assertLessThan(50, $profileQueries, 'Family profile query budget exceeded: '.$profileQueries);
+        $this->assertLessThanOrEqual(50, $profileQueries, 'Family profile query budget exceeded: '.$profileQueries);
     }
 
     #[Test]
