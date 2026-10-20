@@ -2,11 +2,11 @@
 
 namespace Modules\Family\Support\Usage;
 
-use Illuminate\Support\Facades\DB;
+use Modules\Family\Models\FamilyMember;
 use Modules\Tenants\Contracts\UsageMetricProvider;
 
 /**
- * People on record = family members (not soft-deleted) in families that still exist.
+ * Active parish memberships that consume PEOPLE_LIMIT (not historical on-record totals).
  */
 final class PeopleUsageProvider implements UsageMetricProvider
 {
@@ -17,15 +17,9 @@ final class PeopleUsageProvider implements UsageMetricProvider
 
     public function currentUsage(int $tenantId): int
     {
-        return (int) DB::table('family_members')
-            ->where('family_members.tenant_id', $tenantId)
-            ->whereNull('family_members.deleted_at')
-            ->whereIn('family_members.family_id', function ($query) use ($tenantId): void {
-                $query->select('id')
-                    ->from('families')
-                    ->where('tenant_id', $tenantId)
-                    ->whereNull('deleted_at');
-            })
+        return (int) FamilyMember::query()
+            ->where('tenant_id', $tenantId)
+            ->consumingPeopleLimit()
             ->count();
     }
 }

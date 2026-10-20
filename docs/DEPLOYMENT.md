@@ -359,12 +359,17 @@ FILESYSTEM_DISK=local
 TRUSTED_PROXIES=127.0.0.1
 
 MAIL_MAILER=<smtp-or-approved-transport>
+MAIL_SCHEME=smtp
 MAIL_HOST=<MAIL_HOST>
-MAIL_PORT=<MAIL_PORT>
+MAIL_PORT=587
 MAIL_USERNAME=<MAIL_USERNAME>
 MAIL_PASSWORD=<MAIL_PASSWORD>
 MAIL_FROM_ADDRESS=contact@ekklesianexus.com
 MAIL_FROM_NAME=EkklesiaNexus
+# Zoho: copy MAIL_HOST from Settings → Mail Accounts → SMTP.
+# India datacenter mailboxes use smtppro.zoho.in (smtppro.zoho.com returns 535).
+# DigitalOcean droplets block outbound TCP 25/465/587 until SMTP is enabled in the account.
+# Contact-form mail cannot reach Zoho until those ports are open from the API host.
 
 MARKETING_BFF_SECRET=<MATCHES_NEXTJS_MARKETING_BFF_SECRET>
 PLATFORM_HEALTH_TOKEN=<RANDOM_TOKEN>

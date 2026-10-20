@@ -21,6 +21,12 @@ class TenantRlsManagerTest extends TestCase
 
     public function test_it_is_disabled_on_non_pgsql_drivers(): void
     {
+        if (DB::getDriverName() === 'pgsql') {
+            $this->assertTrue(TenantRlsManager::isEnabled());
+
+            return;
+        }
+
         $this->assertFalse(TenantRlsManager::isEnabled());
     }
 

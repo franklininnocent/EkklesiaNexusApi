@@ -3,6 +3,7 @@
 namespace Modules\Subscriptions\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Modules\Authentication\Models\User;
 use Modules\Family\app\Services\FamilySplitService;
 use Modules\Family\Models\Family;
@@ -107,10 +108,10 @@ class EntitlementResolutionTest extends TestCase
         $this->useEntitlementEngine('enforce');
         $limits = app(LimitEnforcementService::class);
 
-        $limits->assertCanAdd($tenant, 'PEOPLE_LIMIT', 1);
+        DB::transaction(fn () => $limits->assertCanAdd($tenant, 'PEOPLE_LIMIT', 1));
 
         try {
-            $limits->assertCanAdd($tenant, 'PEOPLE_LIMIT', 2);
+            DB::transaction(fn () => $limits->assertCanAdd($tenant, 'PEOPLE_LIMIT', 2));
             $this->fail('Adding past the limit must be blocked.');
         } catch (SubscriptionException $e) {
             $this->assertSame(SubscriptionException::ENTITLEMENT_LIMIT_REACHED, $e->errorCode);
@@ -119,7 +120,17 @@ class EntitlementResolutionTest extends TestCase
 
         FamilyMember::factory()->create(['family_id' => $family->id, 'status' => 'active']);
         $this->expectException(SubscriptionException::class);
-        $limits->assertCanAdd($tenant, 'PEOPLE_LIMIT', 1);
+        DB::transaction(fn () => $limits->assertCanAdd($tenant, 'PEOPLE_LIMIT', 1));
+    }
+
+    #[Test]
+    public function tenant_override_takes_precedence_over_custom_limits(): void
+    {
+        $tenant = $this->activeTenant();
+        $this->assignPlan($tenant, 'ENTERPRISE', ['contracted_price' => '50000.00', 'custom_limits' => ['PEOPLE_LIMIT' => 5000]]);
+        $this->override($tenant, 'PEOPLE_LIMIT', TenantEntitlementOverride::MODE_SET_LIMIT, ['numeric_value' => 6000]);
+
+        $this->assertSame(6000, app(EntitlementResolver::class)->resolve($tenant)->limit('PEOPLE_LIMIT'));
     }
 
     #[Test]

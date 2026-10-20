@@ -4,6 +4,7 @@ namespace Modules\Donations\Support;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Modules\Donations\Models\ContributionDue;
 use Modules\Donations\Models\DonationPayment;
@@ -31,6 +32,10 @@ final class DashboardProjectFilter
     {
         if (! is_string($projectId) || $projectId === '') {
             return self::none();
+        }
+
+        if (! Str::isUuid($projectId)) {
+            throw new InvalidArgumentException('The selected project is not available for this parish.');
         }
 
         $row = DB::table('donation_projects')

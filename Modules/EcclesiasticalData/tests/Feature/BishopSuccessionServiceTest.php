@@ -228,16 +228,17 @@ class BishopSuccessionServiceTest extends TestCase
         $tenant = Tenant::factory()->create();
         $this->createChurchProfile($tenant->id);
 
+        $actorId = (int) User::factory()->create(['tenant_id' => $tenant->id])->id;
         $request = $this->requestService->createDraft(
             $tenant->id,
             $this->diocese->id,
             BishopUpdateRequestType::ChangeCurrentBishop,
             ['full_name' => 'Bishop Submitted'],
             ['effective_date' => '2026-03-01'],
-            1,
+            $actorId,
         );
 
-        $this->requestService->submit($request->id, $tenant->id, 1, 1);
+        $this->requestService->submit($request->id, $tenant->id, (int) $request->fresh()->version, $actorId);
 
         $this->assertDatabaseMissing('bishops', ['full_name' => 'Bishop Submitted']);
         $this->assertEquals(BishopUpdateRequestStatus::Submitted, $request->fresh()->status);
@@ -250,18 +251,19 @@ class BishopSuccessionServiceTest extends TestCase
         $tenant = Tenant::factory()->create();
         $this->createChurchProfile($tenant->id);
 
+        $actorId = (int) User::factory()->create(['tenant_id' => $tenant->id])->id;
         $request = $this->requestService->createDraft(
             $tenant->id,
             $this->diocese->id,
             BishopUpdateRequestType::ChangeCurrentBishop,
             ['full_name' => 'Bishop Approved'],
             ['effective_date' => '2026-03-01'],
-            1,
+            $actorId,
         );
-        $this->requestService->submit($request->id, $tenant->id, 1, 1);
+        $submitted = $this->requestService->submit($request->id, $tenant->id, (int) $request->fresh()->version, $actorId);
 
         $reviewer = User::factory()->create();
-        $applied = $this->requestService->approveAndApply($request->id, 2, $reviewer->id);
+        $applied = $this->requestService->approveAndApply($submitted->id, (int) $submitted->version, $reviewer->id);
 
         $this->assertEquals(BishopUpdateRequestStatus::Applied, $applied->status);
         $this->assertEquals(
@@ -276,18 +278,21 @@ class BishopSuccessionServiceTest extends TestCase
         $tenant = Tenant::factory()->create();
         $this->createChurchProfile($tenant->id);
 
+        $actorId = (int) User::factory()->create(['tenant_id' => $tenant->id])->id;
         $request = $this->requestService->createDraft(
             $tenant->id,
             $this->diocese->id,
             BishopUpdateRequestType::ChangeCurrentBishop,
             ['full_name' => 'Bishop Stale'],
             ['effective_date' => '2026-03-01'],
-            1,
+            $actorId,
         );
-        $this->requestService->submit($request->id, $tenant->id, 1, 1);
+        $expectedVersion = (int) $request->fresh()->version;
+        $submitted = $this->requestService->submit($request->id, $tenant->id, $expectedVersion, $actorId);
 
+        $reviewer = User::factory()->create();
         $this->expectException(EcclesiasticalDomainException::class);
-        $this->requestService->approveAndApply($request->id, 1, 99);
+        $this->requestService->approveAndApply($submitted->id, $expectedVersion, (int) $reviewer->id);
     }
 
     #[Test]

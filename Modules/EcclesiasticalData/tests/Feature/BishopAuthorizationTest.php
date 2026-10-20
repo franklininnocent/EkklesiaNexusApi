@@ -336,6 +336,11 @@ class BishopAuthorizationTest extends TestCase
 
     private function createUpdateRequest(int $tenantId, BishopUpdateRequestStatus $status): BishopUpdateRequest
     {
+        $actor = User::factory()->create([
+            'tenant_id' => $tenantId,
+            'active' => 1,
+        ]);
+
         return BishopUpdateRequest::query()->create([
             'tenant_id' => $tenantId,
             'diocese_id' => $this->diocese->id,
@@ -343,8 +348,8 @@ class BishopAuthorizationTest extends TestCase
             'proposed_bishop_data' => ['full_name' => 'Bishop Request'],
             'proposed_appointment_data' => ['effective_date' => '2026-03-01'],
             'status' => $status,
-            'created_by' => 1,
-            'updated_by' => 1,
+            'created_by' => $actor->id,
+            'updated_by' => $actor->id,
         ]);
     }
 }

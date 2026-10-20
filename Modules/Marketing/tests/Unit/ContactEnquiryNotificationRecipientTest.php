@@ -2,23 +2,31 @@
 
 namespace Modules\Marketing\Tests\Unit;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Modules\Marketing\Models\WebSetting;
 use Modules\Marketing\Services\ContactEnquiryNotificationRecipient;
+use Modules\Marketing\Services\WebSettingsService;
 use Tests\TestCase;
 
 class ContactEnquiryNotificationRecipientTest extends TestCase
 {
-    public function test_resolves_email_and_name_from_authentication_config(): void
+    use RefreshDatabase;
+
+    public function test_resolves_email_from_web_settings(): void
     {
         config([
-            'authentication.super_admin.email' => 'Admin@Example.COM',
-            'authentication.super_admin.name' => 'Platform Super Admin',
+            'mail.from.name' => 'EkklesiaNexus',
             'app.frontend_url' => 'https://app.ekklesianexus.com',
         ]);
 
-        $resolver = new ContactEnquiryNotificationRecipient();
+        WebSetting::query()->update(['contact_recipient_email' => 'Contact@Example.COM']);
+        Cache::forget(WebSettingsService::CACHE_KEY);
 
-        $this->assertSame('admin@example.com', $resolver->email());
-        $this->assertSame('Platform Super Admin', $resolver->name());
+        $resolver = app(ContactEnquiryNotificationRecipient::class);
+
+        $this->assertSame('contact@example.com', $resolver->email());
+        $this->assertSame('EkklesiaNexus', $resolver->name());
         $this->assertSame(
             'https://app.ekklesianexus.com/settings/contact-enquiries',
             $resolver->adminEnquiriesUrl(),
@@ -27,8 +35,9 @@ class ContactEnquiryNotificationRecipientTest extends TestCase
 
     public function test_invalid_email_returns_null(): void
     {
-        config(['authentication.super_admin.email' => 'not-valid']);
+        WebSetting::query()->update(['contact_recipient_email' => 'not-valid']);
+        Cache::forget(WebSettingsService::CACHE_KEY);
 
-        $this->assertNull((new ContactEnquiryNotificationRecipient())->email());
+        $this->assertNull(app(ContactEnquiryNotificationRecipient::class)->email());
     }
 }

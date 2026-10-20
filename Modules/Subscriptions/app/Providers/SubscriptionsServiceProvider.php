@@ -17,6 +17,7 @@ use Modules\Subscriptions\Console\Commands\SnapshotTenantUsage;
 use Modules\Subscriptions\Console\Commands\VerifyEntitlementParity;
 use Modules\Subscriptions\Http\Middleware\EnsureEntitlement;
 use Modules\Subscriptions\Http\Middleware\EnsureSubscriptionsPlatformPermission;
+use Modules\Subscriptions\Http\Middleware\EnsureSuperAdminEntitlementOverride;
 use Modules\Subscriptions\Http\Middleware\EnsureWithinLimit;
 use Modules\Subscriptions\Services\Entitlements\EntitlementCatalog;
 use Modules\Subscriptions\Services\Entitlements\EntitlementResolver;
@@ -60,6 +61,7 @@ class SubscriptionsServiceProvider extends ServiceProvider
         /** @var Router $router */
         $router = $this->app->make(Router::class);
         $router->aliasMiddleware('subscriptions.platform.permission', EnsureSubscriptionsPlatformPermission::class);
+        $router->aliasMiddleware('subscriptions.super_admin.override', EnsureSuperAdminEntitlementOverride::class);
         $router->aliasMiddleware('entitlement', EnsureEntitlement::class);
         $router->aliasMiddleware('entitlement.limit', EnsureWithinLimit::class);
 

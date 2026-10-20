@@ -3,12 +3,13 @@
 namespace Modules\Marketing\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
-use Modules\Marketing\Jobs\SendContactEnquiryNotificationJob;
 use Modules\Marketing\Mail\ContactEnquiryNotificationMail;
 use Modules\Marketing\Models\ContactEnquiry;
+use Modules\Marketing\Models\WebSetting;
 use Modules\Marketing\Services\ContactCaptchaService;
+use Modules\Marketing\Services\WebSettingsService;
 use Tests\TestCase;
 
 class PublicContactEnquiryTest extends TestCase
@@ -86,7 +87,7 @@ class PublicContactEnquiryTest extends TestCase
         Mail::assertSent(ContactEnquiryNotificationMail::class, function (ContactEnquiryNotificationMail $mail) use ($enquiry) {
             $html = $mail->render();
 
-            return $mail->hasTo('super-admin-notify@example.test', 'EkklesiaNexus Super Admin')
+            return $mail->hasTo('contact@ekklesianexus.com', 'EkklesiaNexus')
                 && str_contains($html, (string) $enquiry->reference_number)
                 && str_contains($html, 'Maria Thomas')
                 && str_contains($html, 'St Mary Parish')
@@ -186,7 +187,8 @@ class PublicContactEnquiryTest extends TestCase
     public function test_missing_recipient_persists_enquiry_as_failed(): void
     {
         Mail::fake();
-        config(['authentication.super_admin.email' => 'not-an-email']);
+        WebSetting::query()->update(['contact_recipient_email' => 'not-an-email']);
+        Cache::forget(WebSettingsService::CACHE_KEY);
         [$id, $answer] = $this->seedCaptcha();
 
         $this->postJson('/api/public/contact-enquiries', $this->validPayload($id, $answer))
@@ -282,7 +284,7 @@ class PublicContactEnquiryTest extends TestCase
         $this->postJson('/api/public/contact-enquiries', $payload)->assertCreated();
 
         Mail::assertSent(ContactEnquiryNotificationMail::class, function (ContactEnquiryNotificationMail $mail) {
-            return $mail->hasTo('super-admin-notify@example.test')
+            return $mail->hasTo('contact@ekklesianexus.com')
                 && ! $mail->hasTo('attacker@example.com');
         });
     }
@@ -298,23 +300,35 @@ class PublicContactEnquiryTest extends TestCase
         });
     }
 
-    public function test_enquiry_notification_job_is_dispatched_after_http_response(): void
+    public function test_enquiry_notification_is_sent_during_the_submit_request(): void
     {
-        Bus::fake();
+        Mail::fake();
         [$id, $answer] = $this->seedCaptcha();
 
         $this->postJson('/api/public/contact-enquiries', $this->validPayload($id, $answer))
             ->assertCreated();
 
         $this->assertDatabaseCount('contact_enquiries', 1);
-        Bus::assertDispatchedAfterResponse(SendContactEnquiryNotificationJob::class);
+        $this->assertSame(ContactEnquiry::DELIVERY_SENT, ContactEnquiry::query()->value('delivery_status'));
+        Mail::assertSent(ContactEnquiryNotificationMail::class);
     }
 
-    public function test_notification_job_is_unique_per_enquiry(): void
+    public function test_notification_uses_web_settings_recipient_not_super_admin_config(): void
     {
-        $job = new SendContactEnquiryNotificationJob('enquiry-uuid-123');
-        $this->assertSame('enquiry-uuid-123', $job->uniqueId());
-        $this->assertSame(120, $job->uniqueFor);
+        Mail::fake();
+        WebSetting::query()->update([
+            'contact_recipient_email' => 'ops-zoho@example.com',
+        ]);
+        Cache::forget(WebSettingsService::CACHE_KEY);
+        config(['authentication.super_admin.email' => 'super-admin-notify@example.test']);
+        [$id, $answer] = $this->seedCaptcha();
+
+        $this->postJson('/api/public/contact-enquiries', $this->validPayload($id, $answer))->assertCreated();
+
+        Mail::assertSent(ContactEnquiryNotificationMail::class, function (ContactEnquiryNotificationMail $mail) {
+            return $mail->hasTo('ops-zoho@example.com')
+                && ! $mail->hasTo('super-admin-notify@example.test');
+        });
     }
 
     public function test_organization_alias_is_stored_as_organisation(): void

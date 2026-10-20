@@ -2,6 +2,7 @@
 
 namespace Modules\ApplicationAccess\Repositories;
 
+use App\Support\OAuthAccessTokenId;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Modules\ApplicationAccess\Models\ApplicationAccessSession;
@@ -11,8 +12,13 @@ class ApplicationAccessSessionRepository
 {
     public function findByOAuthTokenId(string $oauthAccessTokenId): ?ApplicationAccessSession
     {
+        $tokenId = OAuthAccessTokenId::normalize($oauthAccessTokenId);
+        if ($tokenId === null) {
+            return null;
+        }
+
         return ApplicationAccessSession::query()
-            ->where('oauth_access_token_id', $oauthAccessTokenId)
+            ->where('oauth_access_token_id', $tokenId)
             ->first();
     }
 

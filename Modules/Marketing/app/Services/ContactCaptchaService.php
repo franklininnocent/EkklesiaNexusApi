@@ -19,7 +19,7 @@ class ContactCaptchaService
         Cache::put($this->cacheKey($id), [
             'hash' => $this->hashAnswer($answer),
             'attempts' => 0,
-            'expires_at' => time() + $ttl,
+            'expires_at' => $this->nowTimestamp() + $ttl,
         ], $ttl);
 
         return [
@@ -45,7 +45,7 @@ class ContactCaptchaService
             }
 
             $expiresAt = (int) ($payload['expires_at'] ?? 0);
-            if ($expiresAt > 0 && $expiresAt <= time()) {
+            if ($expiresAt > 0 && $expiresAt <= $this->nowTimestamp()) {
                 Cache::forget($key);
 
                 return false;
@@ -93,14 +93,18 @@ class ContactCaptchaService
      */
     public function seedForTesting(string $challengeId, string $answer, int $ttl = 300): void
     {
-        if (! app()->environment('testing')) {
+        $allowed = app()->runningUnitTests()
+            || config('app.env') === 'testing'
+            || filter_var(env('MARKETING_CAPTCHA_TEST_SEEDING', false), FILTER_VALIDATE_BOOLEAN);
+
+        if (! $allowed) {
             throw new RuntimeException('Cannot seed CAPTCHA outside testing.');
         }
 
         Cache::put($this->cacheKey($challengeId), [
             'hash' => $this->hashAnswer($this->normalize($answer)),
             'attempts' => 0,
-            'expires_at' => time() + $ttl,
+            'expires_at' => $this->nowTimestamp() + $ttl,
         ], $ttl);
     }
 
@@ -125,10 +129,15 @@ class ContactCaptchaService
     {
         $expiresAt = (int) ($payload['expires_at'] ?? 0);
         if ($expiresAt > 0) {
-            return max(1, $expiresAt - time());
+            return max(1, $expiresAt - $this->nowTimestamp());
         }
 
         return $this->ttlSeconds();
+    }
+
+    private function nowTimestamp(): int
+    {
+        return now()->getTimestamp();
     }
 
     private function cacheKey(string $id): string
