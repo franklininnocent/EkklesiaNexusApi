@@ -46,7 +46,9 @@ class DonationLedgerService
         private readonly DonationEntryBalanceService $donationBalanceService,
         private readonly DonationReceiptService $receiptService,
         private readonly DonationNumberSequenceService $sequences,
-        private readonly DonationSecurityEventService $securityEvents
+        private readonly DonationSecurityEventService $securityEvents,
+        private readonly PaymentProjectInstallmentsValidator $projectInstallmentsValidator,
+        private readonly PaymentMandatoryDuesValidator $mandatoryDuesValidator
     ) {}
 
     public function createPayment(int $tenantId, int $userId, array $payload): DonationPayment
@@ -58,6 +60,18 @@ class DonationLedgerService
             $amount = MoneyMath::normalize($payload['amount'] ?? 0);
             if (! MoneyMath::isPositive($amount)) {
                 throw new \RuntimeException('Payment amount must be greater than zero.');
+            }
+
+            $collectionMode = (string) ($payload['collection_mode'] ?? '');
+            $strictCollectionMode = in_array($collectionMode, [
+                PaymentProjectInstallmentsValidator::MODE,
+                PaymentMandatoryDuesValidator::MODE,
+            ], true) ? $collectionMode : null;
+
+            if ($strictCollectionMode === PaymentProjectInstallmentsValidator::MODE) {
+                $this->projectInstallmentsValidator->assertValid($tenantId, $payload);
+            } elseif ($strictCollectionMode === PaymentMandatoryDuesValidator::MODE) {
+                $this->mandatoryDuesValidator->assertValid($tenantId, $payload);
             }
 
             $reference = $this->normalizeReference($payload['gateway_reference'] ?? null);
@@ -88,7 +102,14 @@ class DonationLedgerService
             ]);
 
             $allocatedTotal = '0.00';
-            foreach ($payload['allocations'] ?? [] as $allocation) {
+            $allocationRows = $payload['allocations'] ?? [];
+            if ($strictCollectionMode !== null) {
+                usort($allocationRows, static function (array $a, array $b): int {
+                    return strcmp((string) ($a['allocatable_id'] ?? ''), (string) ($b['allocatable_id'] ?? ''));
+                });
+            }
+
+            foreach ($allocationRows as $allocation) {
                 $requested = MoneyMath::normalize($allocation['amount'] ?? 0);
                 if (! MoneyMath::isPositive($requested)) {
                     continue;
@@ -101,7 +122,8 @@ class DonationLedgerService
                     (string) $allocation['allocatable_type'],
                     (string) ($allocation['allocatable_id'] ?? $payment->id),
                     $requested,
-                    $allocation['notes'] ?? null
+                    $allocation['notes'] ?? null,
+                    $strictCollectionMode
                 );
                 $allocatedTotal = MoneyMath::add($allocatedTotal, $applied);
             }
@@ -110,7 +132,7 @@ class DonationLedgerService
                 throw new \RuntimeException('Allocated amount cannot exceed payment amount.');
             }
 
-            if (MoneyMath::compare($amount, $allocatedTotal) > 0) {
+            if ($strictCollectionMode === null && MoneyMath::compare($amount, $allocatedTotal) > 0) {
                 $remainder = MoneyMath::subtract($amount, $allocatedTotal);
                 $this->persistAllocation(
                     $tenantId,
@@ -119,7 +141,8 @@ class DonationLedgerService
                     'advance',
                     $payment->id,
                     $remainder,
-                    'Auto-created advance balance'
+                    'Auto-created advance balance',
+                    false
                 );
             }
 
@@ -318,7 +341,8 @@ class DonationLedgerService
         string $type,
         string $allocatableId,
         string $amount,
-        ?string $notes
+        ?string $notes,
+        ?string $strictCollectionMode = null
     ): string {
         if ($type !== 'advance' && ! $this->isValidAllocatable($tenantId, $type, $allocatableId)) {
             $this->securityEvents->record('cross_tenant_allocation', $tenantId, $type, $allocatableId, 422);
@@ -341,8 +365,18 @@ class DonationLedgerService
             if (! MoneyMath::isPositive($outstanding)) {
                 throw new \RuntimeException('This contribution has no remaining balance to collect.');
             }
-            $applied = MoneyMath::min($amount, $outstanding);
-            $advanceRemainder = MoneyMath::subtract($amount, $applied);
+            if ($strictCollectionMode === PaymentMandatoryDuesValidator::MODE) {
+                if (MoneyMath::compare($amount, $outstanding) > 0) {
+                    throw new \RuntimeException(
+                        'Contribution balance changed or allocation exceeds remaining balance. Refresh and try again.'
+                    );
+                }
+                $applied = $amount;
+                $advanceRemainder = '0.00';
+            } else {
+                $applied = MoneyMath::min($amount, $outstanding);
+                $advanceRemainder = MoneyMath::subtract($amount, $applied);
+            }
             if (MoneyMath::isPositive($applied)) {
                 ContributionBalance::applyPaid($due, $applied);
                 $due->status = ContributionBalance::statusFromPaid($due);
@@ -362,8 +396,18 @@ class DonationLedgerService
             if (! MoneyMath::isPositive($outstanding)) {
                 throw new \RuntimeException('This installment has no remaining balance to collect.');
             }
-            $applied = MoneyMath::min($amount, $outstanding);
-            $advanceRemainder = MoneyMath::subtract($amount, $applied);
+            if ($strictCollectionMode === PaymentProjectInstallmentsValidator::MODE) {
+                if (MoneyMath::compare($amount, $outstanding) > 0) {
+                    throw new \RuntimeException(
+                        'Installment balance changed or allocation exceeds remaining balance. Refresh and try again.'
+                    );
+                }
+                $applied = $amount;
+                $advanceRemainder = '0.00';
+            } else {
+                $applied = MoneyMath::min($amount, $outstanding);
+                $advanceRemainder = MoneyMath::subtract($amount, $applied);
+            }
             if (MoneyMath::isPositive($applied)) {
                 $this->projectInstallmentService->applyPayment($tenantId, $userId, $installment, $applied);
             }

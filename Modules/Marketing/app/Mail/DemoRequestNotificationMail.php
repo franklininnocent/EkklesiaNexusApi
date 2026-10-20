@@ -2,20 +2,14 @@
 
 namespace Modules\Marketing\Mail;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 use Modules\Marketing\Models\MarketingDemoRequest;
 
-class DemoRequestNotificationMail extends Mailable implements ShouldQueue
+class DemoRequestNotificationMail extends Mailable
 {
-    use Queueable;
-    use SerializesModels;
-
     public function __construct(public readonly MarketingDemoRequest $demoRequest) {}
 
     public function envelope(): Envelope

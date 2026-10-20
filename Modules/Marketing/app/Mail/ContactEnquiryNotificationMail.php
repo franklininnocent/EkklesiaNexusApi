@@ -3,20 +3,15 @@
 namespace Modules\Marketing\Mail;
 
 use App\Support\UserFacingDate;
-use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 use Modules\Marketing\Models\ContactEnquiry;
 use Modules\Marketing\Services\ContactEnquiryNotificationRecipient;
 
 class ContactEnquiryNotificationMail extends Mailable
 {
-    use Queueable;
-    use SerializesModels;
-
     public function __construct(public readonly ContactEnquiry $enquiry) {}
 
     public function envelope(): Envelope

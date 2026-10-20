@@ -52,6 +52,7 @@ class MarketingServiceProvider extends ModuleServiceProvider
 
         $this->mergeConfigFrom(module_path($this->name, 'config/config.php'), 'marketing');
         $this->mergeConfigFrom(module_path($this->name, 'config/web.php'), 'marketing.web');
+        $this->mergeConfigFrom(module_path($this->name, 'config/seo-monitoring.php'), 'marketing.seo-monitoring');
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
         $this->loadViewsFrom(module_path($this->name, 'resources/views'), 'marketing');
     }
