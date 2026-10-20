@@ -96,6 +96,23 @@ class AdminWebSettingsAndEnquiriesTest extends TestCase
         $this->getJson('/api/admin/web-settings')->assertOk();
     }
 
+    public function test_test_email_reports_smtp_authentication_failure(): void
+    {
+        $this->asSuperAdmin();
+        Mail::shouldReceive('to')->once()->andThrow(
+            new \RuntimeException('Failed to authenticate on SMTP server with username "contact@ekklesianexus.com". 535 Authentication Failed')
+        );
+
+        $response = $this->postJson('/api/admin/web-settings/test-email')
+            ->assertStatus(502)
+            ->assertJsonPath('success', false);
+
+        $this->assertStringContainsString(
+            'smtppro.zoho.in',
+            (string) $response->json('message'),
+        );
+    }
+
     public function test_invalid_recipient_is_rejected(): void
     {
         $this->asSuperAdmin();

@@ -60,9 +60,9 @@ class ContactEnquiryService
 
         if ($this->notificationRecipient->email() === null) {
             $enquiry->delivery_status = ContactEnquiry::DELIVERY_FAILED;
-            $enquiry->last_delivery_error = 'Super Admin notification email is not configured.';
+            $enquiry->last_delivery_error = 'Contact enquiry recipient email is not configured.';
             $enquiry->save();
-            $this->recordEvent($enquiry, ContactEnquiry::DELIVERY_FAILED, 0, 'Super Admin notification email is not configured.');
+            $this->recordEvent($enquiry, ContactEnquiry::DELIVERY_FAILED, 0, 'Contact enquiry recipient email is not configured.');
             Log::error('web.contact_enquiry.notification_recipient_missing', [
                 'enquiry_id' => $enquiry->id,
                 'reference_number' => $enquiry->reference_number,
@@ -71,9 +71,14 @@ class ContactEnquiryService
             return $enquiry->fresh();
         }
 
-        SendContactEnquiryNotificationJob::dispatchAfterResponse($enquiry->id);
+        $this->sendStoredEnquiryNotification($enquiry);
 
         return $enquiry->fresh();
+    }
+
+    public function sendStoredEnquiryNotification(ContactEnquiry $enquiry): void
+    {
+        (new SendContactEnquiryNotificationJob($enquiry->id))->handle($this, $this->notificationRecipient);
     }
 
     /**
@@ -193,7 +198,7 @@ class ContactEnquiryService
         $enquiry->last_delivery_error = null;
         $enquiry->save();
 
-        SendContactEnquiryNotificationJob::dispatch($enquiry->id);
+        $this->sendStoredEnquiryNotification($enquiry);
 
         WebSettingsAuditLog::query()->create([
             'actor_id' => $actor->id,

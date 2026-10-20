@@ -5,26 +5,23 @@ namespace Modules\Marketing\Services;
 use Illuminate\Support\Str;
 
 /**
- * Resolves the platform Super Admin recipient for website contact enquiry notifications.
- * Values come from config (authentication.super_admin.*) — never from the public form.
+ * Resolves the website contact enquiry notification recipient from web settings.
+ * Values come from the server-side web_settings row — never from the public form.
  */
 class ContactEnquiryNotificationRecipient
 {
+    public function __construct(private readonly WebSettingsService $webSettings) {}
+
     public function email(): ?string
     {
-        $email = strtolower(trim((string) config('authentication.super_admin.email')));
-        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return null;
-        }
-
-        return $email;
+        return $this->webSettings->recipientEmail();
     }
 
     public function name(): string
     {
-        $name = trim(str_replace(["\r", "\n"], ' ', (string) config('authentication.super_admin.name')));
+        $name = trim(str_replace(["\r", "\n"], ' ', (string) config('mail.from.name')));
         if ($name === '') {
-            return 'EkklesiaNexus Super Admin';
+            return 'EkklesiaNexus';
         }
 
         return Str::limit($name, 80, '');

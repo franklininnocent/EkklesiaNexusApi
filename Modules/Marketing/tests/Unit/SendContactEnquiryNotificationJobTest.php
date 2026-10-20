@@ -13,7 +13,7 @@ class SendContactEnquiryNotificationJobTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_mail_exception_marks_enquiry_failed_without_rethrowing_from_failed_hook(): void
+    public function test_mail_exception_marks_enquiry_failed_without_escaping_handle(): void
     {
         $enquiry = ContactEnquiry::factory()->create([
             'delivery_status' => ContactEnquiry::DELIVERY_RECEIVED,
@@ -22,15 +22,10 @@ class SendContactEnquiryNotificationJobTest extends TestCase
         Mail::shouldReceive('to')->once()->andThrow(new RuntimeException('SMTP unavailable'));
 
         $job = new SendContactEnquiryNotificationJob($enquiry->id);
-
-        try {
-            $job->handle(
-                app(\Modules\Marketing\Services\ContactEnquiryService::class),
-                app(\Modules\Marketing\Services\ContactEnquiryNotificationRecipient::class),
-            );
-        } catch (RuntimeException) {
-            $job->failed(new RuntimeException('SMTP unavailable'));
-        }
+        $job->handle(
+            app(\Modules\Marketing\Services\ContactEnquiryService::class),
+            app(\Modules\Marketing\Services\ContactEnquiryNotificationRecipient::class),
+        );
 
         $this->assertSame(
             ContactEnquiry::DELIVERY_FAILED,
