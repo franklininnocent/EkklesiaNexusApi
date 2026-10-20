@@ -126,6 +126,7 @@ class WebSettingsService
             'from_name_configured' => trim((string) config('mail.from.name')) !== '',
             'queue_connection' => (string) config('queue.default'),
             'smtp_host_configured' => $mailer !== 'smtp' || trim((string) ($smtp['host'] ?? '')) !== '',
+            'smtp_host' => $mailer === 'smtp' ? (trim((string) ($smtp['host'] ?? '')) ?: null) : null,
             'smtp_port' => $mailer === 'smtp' ? (int) ($smtp['port'] ?? 0) : null,
             'smtp_username_configured' => $mailer !== 'smtp' || trim((string) ($smtp['username'] ?? '')) !== '',
             'smtp_password_configured' => $mailer !== 'smtp' || trim((string) ($smtp['password'] ?? '')) !== '',
