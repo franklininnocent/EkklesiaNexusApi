@@ -2,6 +2,7 @@
 
 namespace Modules\ApplicationAccess\Services;
 
+use App\Support\OAuthAccessTokenId;
 use App\Events\Auth\LoginFailed;
 use App\Events\OAuth\AccessTokenCreated;
 use App\Events\OAuth\AccessTokenRevoked;
@@ -52,7 +53,7 @@ class ApplicationAccessSessionLifecycleService
         );
 
         $session = $this->sessions->create([
-            'oauth_access_token_id' => $event->accessTokenId,
+            'oauth_access_token_id' => OAuthAccessTokenId::normalize($event->accessTokenId),
             'previous_session_id' => $previousSessionId,
             'user_id' => $user->id,
             'tenant_id' => $user->tenant_id,

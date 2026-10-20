@@ -39,6 +39,10 @@ class TenantSubscriptionAudit extends Model
         static::updating(function () {
             throw new \RuntimeException('Subscription audit records cannot be updated.');
         });
+
+        static::deleting(function () {
+            throw new \RuntimeException('Subscription audit records cannot be deleted.');
+        });
     }
 
     public function tenant(): BelongsTo

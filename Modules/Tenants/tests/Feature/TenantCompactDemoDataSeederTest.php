@@ -19,10 +19,12 @@ use Modules\Tenants\Database\Seeders\Support\TenantDemoMarkers;
 use Modules\Tenants\Database\Seeders\TenantDemoDataOrchestratorSeeder;
 use Modules\Tenants\Models\Tenant;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Concerns\BindsDemoTenantEnv;
 use Tests\TestCase;
 
 class TenantCompactDemoDataSeederTest extends TestCase
 {
+    use BindsDemoTenantEnv;
     use RefreshDatabase;
 
     protected function tearDown(): void
@@ -66,7 +68,7 @@ class TenantCompactDemoDataSeederTest extends TestCase
             'active' => 1,
         ]);
 
-        putenv(TenantDemoMarkers::ENV_TENANT_ID.'='.$tenant->id);
+        $this->bindDemoTenantEnv((int) $tenant->id);
         putenv(TenantDemoMarkers::ENV_SKIP_BCC_LEADERSHIP.'=1');
 
         $this->seed(TenantDemoDataOrchestratorSeeder::class);
@@ -117,7 +119,7 @@ class TenantCompactDemoDataSeederTest extends TestCase
 
         User::factory()->create(['tenant_id' => $tenant->id, 'active' => 1]);
 
-        putenv(TenantDemoMarkers::ENV_TENANT_ID.'='.$tenant->id);
+        $this->bindDemoTenantEnv((int) $tenant->id);
         putenv(TenantDemoMarkers::ENV_SKIP_FAMILIES.'=1');
         putenv(TenantDemoMarkers::ENV_SKIP_STEWARDSHIP.'=1');
         putenv(TenantDemoMarkers::ENV_SKIP_BCC_LEADERSHIP.'=1');
@@ -141,7 +143,7 @@ class TenantCompactDemoDataSeederTest extends TestCase
 
         User::factory()->create(['tenant_id' => $tenant->id, 'active' => 1]);
 
-        putenv(TenantDemoMarkers::ENV_TENANT_ID.'='.$tenant->id);
+        $this->bindDemoTenantEnv((int) $tenant->id);
         putenv(TenantDemoMarkers::ENV_SKIP_BCC_LEADERSHIP.'=1');
         putenv(TenantDemoMarkers::ENV_SKIP_SACRAMENTS.'=1');
 
@@ -183,7 +185,7 @@ class TenantCompactDemoDataSeederTest extends TestCase
 
         User::factory()->create(['tenant_id' => $tenant->id, 'active' => 1]);
 
-        putenv(TenantDemoMarkers::ENV_TENANT_ID.'='.$tenant->id);
+        $this->bindDemoTenantEnv((int) $tenant->id);
         putenv(TenantDemoMarkers::ENV_SKIP_BCC_LEADERSHIP.'=1');
         putenv(TenantDemoMarkers::ENV_SKIP_STEWARDSHIP.'=1');
         putenv(TenantDemoMarkers::ENV_SKIP_SACRAMENTS.'=1');

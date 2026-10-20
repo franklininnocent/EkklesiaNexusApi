@@ -35,6 +35,11 @@ final class ResolvedEntitlements
             : $this->defaultAllow;
     }
 
+    public function hasEntitlement(string $code): bool
+    {
+        return isset($this->features[strtoupper($code)]);
+    }
+
     /**
      * Numeric limit for a limit/quota feature. null = unlimited, 0 = not included.
      */
@@ -51,6 +56,27 @@ final class ResolvedEntitlements
         }
 
         return $entry['value'] === null ? null : (int) $entry['value'];
+    }
+
+    public function limitIsUnlimited(string $code): bool
+    {
+        $code = strtoupper($code);
+        if (! isset($this->features[$code])) {
+            return false;
+        }
+
+        $entry = $this->features[$code];
+
+        return $entry['enabled']
+            && in_array($entry['type'], ['LIMIT', 'QUOTA', 'USAGE'], true)
+            && $entry['value'] === null;
+    }
+
+    public function limitSource(string $code): ?string
+    {
+        $code = strtoupper($code);
+
+        return $this->features[$code]['source'] ?? null;
     }
 
     public function tier(string $code): ?string

@@ -4,6 +4,7 @@ namespace Modules\Subscriptions\Services;
 
 use Modules\Subscriptions\Services\Entitlements\EntitlementCatalog;
 use Modules\Subscriptions\Services\Entitlements\ResolvedEntitlements;
+use Modules\Tenants\Support\Usage\StorageUsageProvider;
 use Modules\Tenants\Support\UsageMetricRegistry;
 
 /**
@@ -41,10 +42,23 @@ class UsageService
         return $provider ? max(0, $provider->currentUsage($tenantId)) : null;
     }
 
+    public function currentFresh(int $tenantId, string $code): ?int
+    {
+        $provider = $this->registry->get($code);
+        if (! $provider) {
+            return null;
+        }
+        if ($provider instanceof StorageUsageProvider) {
+            return max(0, $provider->currentUsageUncached($tenantId));
+        }
+
+        return max(0, $provider->currentUsage($tenantId));
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
-    public function summary(ResolvedEntitlements $resolved): array
+    public function summary(ResolvedEntitlements $resolved, ?ResolvedEntitlements $planResolved = null): array
     {
         $rows = [];
         foreach ($this->catalog->features() as $code => $feature) {
@@ -53,7 +67,7 @@ class UsageService
             }
             $limit = $resolved->limit($code);
             $usage = (int) $this->current($resolved->tenantId, $code);
-            $rows[] = $this->row($code, $feature, $usage, $limit);
+            $rows[] = $this->row($code, $feature, $usage, $limit, $resolved, $planResolved);
         }
 
         return $rows;
@@ -63,20 +77,39 @@ class UsageService
      * @param  array<string, mixed>  $feature
      * @return array<string, mixed>
      */
-    public function row(string $code, array $feature, int $usage, ?int $limit): array
-    {
-        $percent = $limit !== null && $limit > 0 ? round(($usage / $limit) * 100, 1) : ($limit === 0 && $usage > 0 ? 100.0 : null);
+    public function row(
+        string $code,
+        array $feature,
+        int $usage,
+        ?int $limit,
+        ?ResolvedEntitlements $resolved = null,
+        ?ResolvedEntitlements $planResolved = null,
+    ): array {
+        $unlimited = $resolved?->limitIsUnlimited($code) ?? ($limit === null);
+        $planLimit = $planResolved?->limit($code);
+        $planUnlimited = $planResolved?->limitIsUnlimited($code) ?? false;
+        $effectiveLimit = $unlimited ? null : $limit;
+        $percent = $effectiveLimit !== null && $effectiveLimit > 0
+            ? round(($usage / $effectiveLimit) * 100, 1)
+            : ($effectiveLimit === 0 && $usage > 0 ? 100.0 : null);
+
+        $hasException = $planResolved !== null
+            && ($planUnlimited !== $unlimited || $planLimit !== $effectiveLimit);
 
         return [
             'code' => $code,
             'name' => $feature['name'],
             'unit' => $feature['unit'],
             'usage' => $usage,
-            'limit' => $limit,
-            'unlimited' => $limit === null,
-            'remaining' => $limit === null ? null : max(0, $limit - $usage),
+            'limit' => $effectiveLimit,
+            'plan_limit' => $planUnlimited ? null : $planLimit,
+            'plan_unlimited' => $planUnlimited,
+            'effective_source' => $resolved?->limitSource($code),
+            'has_tenant_allowance_exception' => $hasException,
+            'unlimited' => $unlimited,
+            'remaining' => $unlimited ? null : max(0, (int) $effectiveLimit - $usage),
             'percent_used' => $percent,
-            'level' => $this->level($usage, $limit),
+            'level' => $this->level($usage, $effectiveLimit),
         ];
     }
 

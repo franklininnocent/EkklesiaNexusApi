@@ -448,9 +448,9 @@ class UserController extends Controller
                 }
             }
 
-            $this->assertReactivationWithinStaffLimit($authUser, $user, $request->input('active', $user->active));
-
             DB::beginTransaction();
+
+            $this->assertReactivationWithinStaffLimit($authUser, $user, $request->input('active', $user->active));
 
             // Update basic info
             $user->name = $request->input('name', $user->name);

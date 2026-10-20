@@ -134,7 +134,9 @@ class MassCelebrationService
             'origin' => $celebration->origin,
             'slot_id' => $celebration->slot_id,
             'celebrated_on' => $celebration->celebrated_on?->format('Y-m-d'),
-            'celebrated_at' => $celebration->celebrated_at,
+            'celebrated_at' => $celebration->celebrated_at
+                ? substr((string) $celebration->celebrated_at, 0, 5)
+                : null,
             'place' => $celebration->place,
             'celebrant_name' => $celebration->celebrant_name,
             'occasion' => $celebration->occasion,

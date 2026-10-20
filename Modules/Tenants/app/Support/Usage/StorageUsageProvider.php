@@ -19,15 +19,23 @@ final class StorageUsageProvider implements UsageMetricProvider
 
     public function currentUsage(int $tenantId): int
     {
-        return (int) Cache::remember("tenant:{$tenantId}:storage_used_mb", 600, static function () use ($tenantId): int {
-            $tenant = Tenant::query()->find($tenantId);
-            if (! $tenant) {
-                return 0;
-            }
-            $measured = app(TenantUsageService::class)->measureStorage($tenant);
+        return (int) Cache::remember("tenant:{$tenantId}:storage_used_mb", 600, fn (): int => $this->measureMb($tenantId));
+    }
 
-            return (int) ceil((float) ($measured['used_mb'] ?? 0));
-        });
+    public function currentUsageUncached(int $tenantId): int
+    {
+        return $this->measureMb($tenantId);
+    }
+
+    private function measureMb(int $tenantId): int
+    {
+        $tenant = Tenant::query()->find($tenantId);
+        if (! $tenant) {
+            return 0;
+        }
+        $measured = app(TenantUsageService::class)->measureStorage($tenant);
+
+        return (int) ceil((float) ($measured['used_mb'] ?? 0));
     }
 
     public static function forget(int $tenantId): void

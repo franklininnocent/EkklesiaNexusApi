@@ -20,10 +20,12 @@ use Modules\Tenants\Database\Seeders\Support\SacramentsDemoVerifier;
 use Modules\Tenants\Database\Seeders\TenantSacramentsDemoSeeder;
 use Modules\Tenants\Models\Tenant;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Concerns\BindsDemoTenantEnv;
 use Tests\TestCase;
 
 class TenantSacramentsDemoSeederTest extends TestCase
 {
+    use BindsDemoTenantEnv;
     use RefreshDatabase;
 
     #[Test]
@@ -127,8 +129,10 @@ class TenantSacramentsDemoSeederTest extends TestCase
             ]);
         }
 
-        putenv('TENANT_DEMO_TENANT_ID='.$tenant->id);
+        $this->bindDemoTenantEnv((int) $tenant->id);
         putenv(SacramentsDemoMarkers::ENV_TARGET.'='.SacramentsDemoMarkers::DEFAULT_TARGET);
+        $_ENV[SacramentsDemoMarkers::ENV_TARGET] = (string) SacramentsDemoMarkers::DEFAULT_TARGET;
+        $_SERVER[SacramentsDemoMarkers::ENV_TARGET] = (string) SacramentsDemoMarkers::DEFAULT_TARGET;
 
         $this->seed(TenantSacramentsDemoSeeder::class);
         $firstCount = Sacrament::query()

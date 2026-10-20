@@ -25,7 +25,11 @@ class PaymentWebhooksController extends Controller
         }
 
         $event = $this->webhookService->receive($provider, $request->all(), $signature);
-        ProcessPaymentGatewayWebhookJob::dispatch($event->id);
+        if (config('queue.default') === 'sync') {
+            ProcessPaymentGatewayWebhookJob::dispatchSync($event->id);
+        } else {
+            ProcessPaymentGatewayWebhookJob::dispatch($event->id);
+        }
 
         return response()->json([
             'success' => true,

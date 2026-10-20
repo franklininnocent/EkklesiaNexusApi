@@ -117,6 +117,39 @@ class ContributionBalance
             });
     }
 
+    /**
+     * Project installment dues use due_date only (no contribution period columns).
+     */
+    public static function scopeProjectInstallmentCollectable(Builder $query, string $businessDate): Builder
+    {
+        return $query
+            ->whereIn('status', ['pending', 'partially_paid'])
+            ->whereDate('due_date', '<=', $businessDate);
+    }
+
+    public static function scopeProjectInstallmentRemainingCollectable(Builder $query, string $businessDate): Builder
+    {
+        return $query
+            ->whereIn('status', ['pending', 'partially_paid'])
+            ->whereDate('due_date', '>=', $businessDate);
+    }
+
+    public static function scopeProjectInstallmentDueNextDays(Builder $query, string $businessDate, int $days): Builder
+    {
+        $end = Carbon::parse($businessDate)->addDays($days)->toDateString();
+
+        return self::scopeProjectInstallmentRemainingCollectable($query, $businessDate)
+            ->whereDate('due_date', '<=', $end);
+    }
+
+    public static function scopeProjectInstallmentDueAfterDays(Builder $query, string $businessDate, int $days): Builder
+    {
+        $after = Carbon::parse($businessDate)->addDays($days)->toDateString();
+
+        return self::scopeProjectInstallmentRemainingCollectable($query, $businessDate)
+            ->whereDate('due_date', '>', $after);
+    }
+
     public static function scopeOverdue(Builder $query, string $businessDate): Builder
     {
         return $query

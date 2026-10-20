@@ -7,6 +7,7 @@ use Modules\Authentication\Models\Role;
 use Modules\Authentication\Models\User;
 use Modules\RolesAndPermissions\Models\Permission;
 use Modules\SupportTickets\Database\Seeders\SupportTicketsDatabaseSeeder;
+use Modules\SupportTickets\Models\SupportRequestType;
 use Modules\SupportTickets\Models\SupportTicket;
 use Modules\SupportTickets\Models\SupportTicketComment;
 use Modules\SupportTickets\Support\ResolvedByActor;
@@ -65,7 +66,7 @@ class SupportTicketSecurityTest extends TestCase
         Passport::actingAs($this->userA);
 
         $created = $this->postJson('/api/tenant/support/tickets', [
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'subject' => 'Cannot log in',
             'description' => 'Password reset fails',
             'submit' => true,
@@ -81,7 +82,7 @@ class SupportTicketSecurityTest extends TestCase
     {
         Passport::actingAs($this->userA);
         $ticketNumber = $this->postJson('/api/tenant/support/tickets', [
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'subject' => 'Private issue',
             'description' => 'Details',
             'submit' => true,
@@ -107,7 +108,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
         ]);
 
         SupportTicketComment::query()->create([
@@ -143,7 +144,7 @@ class SupportTicketSecurityTest extends TestCase
 
         Passport::actingAs($viewer);
         $this->postJson('/api/tenant/support/tickets', [
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'subject' => 'Blocked',
             'description' => 'Should fail',
         ])->assertForbidden();
@@ -155,7 +156,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::NEW,
         ]);
 
@@ -169,7 +170,7 @@ class SupportTicketSecurityTest extends TestCase
         $bad = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::RESOLVED,
         ]);
 
@@ -184,7 +185,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::NEW,
         ]);
 
@@ -203,7 +204,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::IN_PROGRESS,
         ]);
 
@@ -219,7 +220,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::IN_PROGRESS,
         ]);
 
@@ -239,7 +240,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::AWAITING_YOU,
         ]);
 
@@ -255,7 +256,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::CANCELLED,
         ]);
 
@@ -272,7 +273,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::IN_PROGRESS,
             'resolved_by_user_id' => null,
         ]);
@@ -296,7 +297,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::CLOSED,
             'resolved_by_actor' => ResolvedByActor::TENANT,
             'resolved_by_user_id' => $this->userA->id,
@@ -313,7 +314,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::NEW,
         ]);
 
@@ -328,7 +329,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::RESOLVED,
             'reopen_allowed_until' => now()->addDays(10),
         ]);
@@ -353,7 +354,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::NEW,
         ]);
 
@@ -370,7 +371,7 @@ class SupportTicketSecurityTest extends TestCase
         $ticket = SupportTicket::factory()->create([
             'tenant_id' => $this->tenantA->id,
             'requester_user_id' => $this->userA->id,
-            'request_type_id' => 1,
+            'request_type_id' => $this->technicalRequestTypeId(),
             'status' => TicketStatus::RESOLVED,
             'reopen_allowed_until' => now()->addDays(10),
         ]);
@@ -441,6 +442,15 @@ class SupportTicketSecurityTest extends TestCase
         }
 
         return $user->fresh();
+    }
+
+    private function technicalRequestTypeId(): int
+    {
+        $id = SupportRequestType::query()->where('slug', 'technical_issue')->value('id');
+
+        $this->assertNotNull($id, 'Support request type technical_issue must be seeded.');
+
+        return (int) $id;
     }
 
     /**

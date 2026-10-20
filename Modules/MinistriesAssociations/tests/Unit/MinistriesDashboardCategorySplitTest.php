@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\MinistriesAssociations\Models\Organization;
 use Modules\MinistriesAssociations\Models\OrganizationCategory;
 use Modules\MinistriesAssociations\Models\OrganizationType;
+use Modules\Authentication\Models\User;
 use Modules\MinistriesAssociations\Services\MinistriesDashboardService;
 use Modules\Tenants\Models\Tenant;
 use PHPUnit\Framework\Attributes\Test;
@@ -19,7 +20,7 @@ class MinistriesDashboardCategorySplitTest extends TestCase
     public function active_by_category_counts_sum_to_active_organizations(): void
     {
         $tenant = Tenant::factory()->create();
-        $userId = 1;
+        $userId = (int) User::factory()->create(['tenant_id' => $tenant->id])->id;
 
         $ministryCat = OrganizationCategory::query()->create([
             'tenant_id' => $tenant->id,

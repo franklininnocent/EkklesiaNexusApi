@@ -4,6 +4,7 @@ namespace Modules\Donations\Support;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Modules\Donations\Models\ContributionDue;
 use Modules\Donations\Models\DonationPayment;
@@ -37,6 +38,10 @@ final class DashboardBccFilter
 
         if ($bccId === self::UNASSIGNED) {
             return new self(true, null, true, 'Unassigned Area');
+        }
+
+        if (! Str::isUuid($bccId)) {
+            throw new InvalidArgumentException('The selected BCC is not available for this parish.');
         }
 
         $row = DB::table('bccs')

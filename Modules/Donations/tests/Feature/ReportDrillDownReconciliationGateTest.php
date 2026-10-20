@@ -373,13 +373,15 @@ class ReportDrillDownReconciliationGateTest extends TestCase
             'source_type' => 'general',
         ]);
 
-        $plan = DB::select('EXPLAIN QUERY PLAN SELECT id FROM donation_payments WHERE tenant_id = ? AND status = ? AND payment_date BETWEEN ? AND ?', [
-            $this->tenant->id,
-            'succeeded',
-            now()->startOfMonth()->toDateString(),
-            now()->toDateString(),
-        ]);
-        $this->assertNotEmpty($plan);
+        if (DB::getDriverName() === 'sqlite') {
+            $plan = DB::select('EXPLAIN QUERY PLAN SELECT id FROM donation_payments WHERE tenant_id = ? AND status = ? AND payment_date BETWEEN ? AND ?', [
+                $this->tenant->id,
+                'succeeded',
+                now()->startOfMonth()->toDateString(),
+                now()->toDateString(),
+            ]);
+            $this->assertNotEmpty($plan);
+        }
 
         $started = microtime(true);
         $this->getJson('/api/tenant/donations/reports/drill-down?'.http_build_query([
