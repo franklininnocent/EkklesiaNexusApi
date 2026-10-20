@@ -15,10 +15,12 @@ use Modules\Tenants\Database\Seeders\Support\TenantDemoMarkers;
 use Modules\Tenants\Database\Seeders\TenantMinistriesDemoSeeder;
 use Modules\Tenants\Models\Tenant;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Concerns\BindsDemoTenantEnv;
 use Tests\TestCase;
 
 class TenantMinistriesDemoSeederTest extends TestCase
 {
+    use BindsDemoTenantEnv;
     use RefreshDatabase;
 
     #[Test]
@@ -47,7 +49,7 @@ class TenantMinistriesDemoSeederTest extends TestCase
             ]);
         }
 
-        putenv(TenantDemoMarkers::ENV_TENANT_ID.'='.$tenant->id);
+        $this->bindDemoTenantEnv((int) $tenant->id);
 
         $this->seed(TenantMinistriesDemoSeeder::class);
         $membershipCount = OrganizationMembership::query()

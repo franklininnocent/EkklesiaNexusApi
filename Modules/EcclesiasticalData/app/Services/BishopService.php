@@ -85,6 +85,10 @@ class BishopService
 
             $data['normalized_name'] = $this->nameNormalizer->normalize($data['full_name'] ?? null);
 
+            if (($data['status'] ?? null) === 'inactive') {
+                $data['is_current'] = false;
+            }
+
             if ($checkDuplicates) {
                 $duplicates = $this->duplicateDetection->findHighConfidenceDuplicates($data);
 

@@ -3,6 +3,7 @@
 namespace Modules\Subscriptions\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Modules\Authentication\Models\User;
 use Modules\Family\Models\Family;
 use Modules\Family\Models\FamilyMember;
@@ -35,7 +36,7 @@ class EntitlementEnforcementTest extends TestCase
         $this->useEntitlementEngine('enforce');
 
         try {
-            app(LimitEnforcementService::class)->assertCanAdd($ctx['tenant'], 'FAMILY_LIMIT', 1);
+            DB::transaction(fn () => app(LimitEnforcementService::class)->assertCanAdd($ctx['tenant'], 'FAMILY_LIMIT', 1));
             $this->fail('Expected family limit to block a second household.');
         } catch (SubscriptionException $e) {
             $this->assertSame(SubscriptionException::ENTITLEMENT_LIMIT_REACHED, $e->errorCode);
@@ -109,7 +110,7 @@ class EntitlementEnforcementTest extends TestCase
         $service->assertCanAdd($tenant, 'FAMILY_LIMIT', 1, 'sacrament_recipient');
 
         $this->expectException(SubscriptionException::class);
-        $service->assertCanAdd($tenant, 'FAMILY_LIMIT', 1);
+        DB::transaction(fn () => $service->assertCanAdd($tenant, 'FAMILY_LIMIT', 1));
     }
 
     #[Test]

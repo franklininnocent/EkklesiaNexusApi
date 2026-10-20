@@ -13,6 +13,7 @@ use Modules\Marketing\Support\MarketingPlanCatalogCache;
 use Modules\Subscriptions\Models\Feature;
 use Modules\Subscriptions\Models\Plan;
 use Modules\Subscriptions\Models\PlanEntitlement;
+use Modules\Subscriptions\Models\PlanVersion;
 use Tests\Concerns\ActsAsTenantRoles;
 use Tests\TestCase;
 
@@ -332,7 +333,7 @@ class MarketingPlanCatalogTest extends TestCase
         $this->asSuperAdmin();
         $enterprise = Plan::query()->where('code', 'ENTERPRISE')->firstOrFail();
         $wasPublic = (bool) $enterprise->is_public;
-        $entitlementCount = PlanEntitlement::query()->where('plan_id', $enterprise->id)->count();
+        $entitlementCount = $this->entitlementCountForPlan($enterprise);
 
         $preview = $this->postJson('/api/admin/marketing/plan-catalog/previews')->assertCreated()->json('data');
         $revisionId = (int) $preview['revision_id'];
@@ -353,7 +354,7 @@ class MarketingPlanCatalogTest extends TestCase
         $this->assertSame($wasPublic, (bool) $enterprise->fresh()->is_public);
         $this->assertSame(
             $entitlementCount,
-            PlanEntitlement::query()->where('plan_id', $enterprise->id)->count()
+            $this->entitlementCountForPlan($enterprise->fresh())
         );
         $this->getJson('/api/public/subscription-plans')->assertJsonPath('data', []);
 
@@ -435,5 +436,16 @@ class MarketingPlanCatalogTest extends TestCase
         $user->syncRoles([$role->id]);
         $this->refreshUserPermissionState($user);
         Passport::actingAs($user->fresh());
+    }
+
+    private function entitlementCountForPlan(Plan $plan): int
+    {
+        $versionIds = PlanVersion::query()
+            ->where('plan_id', $plan->id)
+            ->pluck('id');
+
+        return PlanEntitlement::query()
+            ->whereIn('plan_version_id', $versionIds)
+            ->count();
     }
 }

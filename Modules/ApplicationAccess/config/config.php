@@ -12,7 +12,10 @@ return [
     | Enabled in Phase 6 after sanitizer tests pass.
     |
     */
-    'telemetry_enabled' => env('APPLICATION_ACCESS_TELEMETRY_ENABLED', true),
+    'telemetry_enabled' => filter_var(
+        env('APPLICATION_ACCESS_TELEMETRY_ENABLED', env('APP_ENV') === 'testing' ? false : true),
+        FILTER_VALIDATE_BOOLEAN
+    ),
 
     /*
     |--------------------------------------------------------------------------

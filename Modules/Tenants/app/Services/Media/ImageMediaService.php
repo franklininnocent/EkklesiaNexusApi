@@ -4,10 +4,12 @@ namespace Modules\Tenants\Services\Media;
 
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\Tenants\Contracts\TenantLimitGuard;
 use Modules\Tenants\Support\TenantPrivateStorage;
+use Modules\Tenants\Support\Usage\StorageUsageProvider;
 use RuntimeException;
 
 class ImageMediaService
@@ -16,13 +18,12 @@ class ImageMediaService
         private readonly ImageMediaPolicy $policy = new ImageMediaPolicy,
     ) {}
 
-    private function assertWithinStorageLimit(UploadedFile $file, int $tenantId): void
+    private function assertWithinStorageLimitMb(int $tenantId, int $addingMb): void
     {
         if ($tenantId <= 0 || ! app()->bound(TenantLimitGuard::class)) {
             return;
         }
 
-        $addingMb = max(1, (int) ceil(((int) $file->getSize()) / 1048576));
         try {
             app(TenantLimitGuard::class)->assertTenantCanAdd($tenantId, 'STORAGE_MB', $addingMb);
         } catch (RuntimeException $e) {
@@ -46,7 +47,6 @@ class ImageMediaService
         }
 
         $this->policy->assertPreUpload($file, $category);
-        $this->assertWithinStorageLimit($file, $tenantId);
 
         $realPath = $file->getRealPath();
         if ($realPath === false) {
@@ -95,15 +95,30 @@ class ImageMediaService
         $uuid = Str::uuid()->toString();
         $displayKey = ImageMediaPaths::displayKey($tenantId, $category, $uuid);
         $thumbKey = ImageMediaPaths::thumbKey($tenantId, $category, $uuid);
+        $addingMb = max(1, (int) ceil(strlen($displayBytes) / 1048576));
 
-        if (! TenantPrivateStorage::put($displayKey, $displayBytes) || ! TenantPrivateStorage::put($thumbKey, $thumbBytes)) {
-            $this->deleteQuietly($displayKey);
-            $this->deleteQuietly($thumbKey);
+        $persist = function () use ($displayKey, $displayBytes, $thumbKey, $thumbBytes): void {
+            if (! TenantPrivateStorage::put($displayKey, $displayBytes) || ! TenantPrivateStorage::put($thumbKey, $thumbBytes)) {
+                $this->deleteQuietly($displayKey);
+                $this->deleteQuietly($thumbKey);
 
-            throw new ImageMediaException(
-                ImageMediaException::CODE_STORAGE,
-                'The image could not be stored.'
-            );
+                throw new ImageMediaException(
+                    ImageMediaException::CODE_STORAGE,
+                    'The image could not be stored.'
+                );
+            }
+        };
+
+        if ($tenantId > 0 && app()->bound(TenantLimitGuard::class)) {
+            DB::transaction(function () use ($tenantId, $addingMb, $persist): void {
+                DB::table('tenants')->where('id', $tenantId)->lockForUpdate()->first(['id']);
+                StorageUsageProvider::forget($tenantId);
+                $this->assertWithinStorageLimitMb($tenantId, $addingMb);
+                $persist();
+                StorageUsageProvider::forget($tenantId);
+            });
+        } else {
+            $persist();
         }
 
         Log::info('Image media stored', [
@@ -167,6 +182,9 @@ class ImageMediaService
         $thumbKey = ImageMediaPaths::thumbKeyForDisplayKey($storageKey);
         $this->deleteQuietly($storageKey);
         $this->deleteQuietly($thumbKey);
+        if ($tenantId > 0) {
+            StorageUsageProvider::forget($tenantId);
+        }
     }
 
     public function checksumForKey(string $storageKey): ?string

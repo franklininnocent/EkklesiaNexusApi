@@ -13,6 +13,7 @@ use Modules\BCC\Services\BccFamilyMembershipService;
 use Modules\Family\app\Repositories\FamilyRepository;
 use Modules\Family\Events\FamilyMemberStatusChanged;
 use Modules\Family\Models\Family;
+use Modules\Family\Support\PeopleLimitEligibility;
 use Modules\Family\Models\FamilyMember;
 use Modules\Family\Models\Person;
 use Modules\Sacraments\Models\Sacrament;
@@ -97,10 +98,13 @@ class FamilyService
 
             DB::beginTransaction();
 
-            $newMembers = (! empty($data['members']) && is_array($data['members'])) ? count($data['members']) : 0;
+            $familyStatus = $data['status'] ?? 'active';
+            $peopleSlots = (! empty($data['members']) && is_array($data['members']))
+                ? PeopleLimitEligibility::countPayloadsConsuming($data['members'], $familyStatus)
+                : 0;
             $this->assertWithinPlanLimit($tenantId, 'FAMILY_LIMIT', 1);
-            if ($newMembers > 0) {
-                $this->assertWithinPlanLimit($tenantId, 'PEOPLE_LIMIT', $newMembers);
+            if ($peopleSlots > 0) {
+                $this->assertWithinPlanLimit($tenantId, 'PEOPLE_LIMIT', $peopleSlots);
             }
 
             // Add tenant and audit info
@@ -194,6 +198,38 @@ class FamilyService
             $membersData = $data['members'] ?? null;
             unset($data['members']); // Remove members from family update data
 
+            $peopleDelta = 0;
+            $prospectiveFamilyStatus = array_key_exists('status', $data) ? (string) $data['status'] : $family->status;
+            if (array_key_exists('status', $data)) {
+                $peopleDelta += PeopleLimitEligibility::deltaForFamilyStatusChange($family, $prospectiveFamilyStatus);
+            }
+            if (! empty($membersData) && is_array($membersData)) {
+                foreach ($membersData as $memberPayload) {
+                    $memberId = null;
+                    if (isset($memberPayload['id']) && $memberPayload['id'] !== null && $memberPayload['id'] !== '') {
+                        $memberId = trim((string) $memberPayload['id']);
+                    }
+                    if ($memberId) {
+                        $existing = $this->familyRepository->findMemberById($memberId, $family->id);
+                        if ($existing) {
+                            $newStatus = array_key_exists('status', $memberPayload)
+                                ? (string) $memberPayload['status']
+                                : $existing->status;
+                            $peopleDelta += PeopleLimitEligibility::deltaForMemberStatusChange(
+                                $existing,
+                                $newStatus,
+                                $prospectiveFamilyStatus,
+                            );
+                        }
+                    } elseif (PeopleLimitEligibility::payloadWillConsumeSlot($memberPayload, $prospectiveFamilyStatus)) {
+                        $peopleDelta++;
+                    }
+                }
+            }
+            if ($peopleDelta > 0) {
+                $this->assertWithinPlanLimit($tenantId, 'PEOPLE_LIMIT', $peopleDelta);
+            }
+
             $syncPersonAddresses = ! empty($data['sync_person_addresses']);
             unset($data['sync_person_addresses']);
 
@@ -275,7 +311,6 @@ class FamilyService
                             'family_id' => $family->id,
                             'first_name' => $memberData['first_name'] ?? 'N/A',
                         ]);
-                        $this->assertWithinPlanLimit($tenantId, 'PEOPLE_LIMIT', 1);
                         $memberData['created_by'] = $userId;
                         $memberData['updated_by'] = $userId;
                         $memberData = $this->ensureMemberPersonWithParents($memberData, $tenantId, $userId);
@@ -446,7 +481,9 @@ class FamilyService
 
             DB::beginTransaction();
 
-            $this->assertWithinPlanLimit($tenantId, 'PEOPLE_LIMIT', 1);
+            if (PeopleLimitEligibility::payloadWillConsumeSlot($memberData, $family->status)) {
+                $this->assertWithinPlanLimit($tenantId, 'PEOPLE_LIMIT', 1);
+            }
 
             // Add audit info
             $memberData['created_by'] = $userId;
@@ -539,6 +576,14 @@ class FamilyService
             DB::beginTransaction();
 
             $previousStatus = $member->status;
+            $peopleDelta = PeopleLimitEligibility::deltaForMemberStatusChange(
+                $member,
+                array_key_exists('status', $data) ? (string) $data['status'] : null,
+                $family->status,
+            );
+            if ($peopleDelta > 0) {
+                $this->assertWithinPlanLimit($tenantId, 'PEOPLE_LIMIT', $peopleDelta);
+            }
 
             // Log the data being sent for debugging
             Log::info('Updating existing family member', [

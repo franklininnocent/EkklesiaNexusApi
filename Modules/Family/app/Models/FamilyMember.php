@@ -183,6 +183,23 @@ class FamilyMember extends Model
     }
 
     /**
+     * Memberships that consume the parish PEOPLE_LIMIT subscription quota (active member, live family, not migrated).
+     *
+     * @param  Builder  $query
+     * @return Builder
+     */
+    public function scopeConsumingPeopleLimit($query)
+    {
+        return $query
+            ->where('family_members.status', 'active')
+            ->whereNull('family_members.deleted_at')
+            ->whereHas('family', function (Builder $family): void {
+                $family->whereNull('deleted_at')
+                    ->where('status', '!=', 'migrated');
+            });
+    }
+
+    /**
      * Scope a query to filter by gender.
      *
      * @param  Builder  $query

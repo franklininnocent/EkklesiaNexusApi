@@ -404,6 +404,9 @@ class SubscriptionPresenter
         }
 
         $identity = $this->currentPlan->resolve($tenant);
+        $planResolved = ($current && $current->version)
+            ? $this->resolver->simulate($tenant, $current->version, [], [])
+            : null;
 
         return [
             'plan' => $this->authoritativePlanSummary($tenant, $resolved, $identity),
@@ -418,7 +421,7 @@ class SubscriptionPresenter
                 'scheduled_for' => $pending->scheduled_for?->toIso8601String(),
             ] : null,
             'entitlements' => $entitlements,
-            'usage' => $this->usage->summary($resolved),
+            'usage' => $this->usage->summary($resolved, $planResolved),
             'engine_mode' => EntitlementEngineMode::current(),
             'comparison' => $this->tenantComparison($tenant, $identity),
         ];
@@ -481,7 +484,7 @@ class SubscriptionPresenter
     /**
      * @return array<string, mixed>
      */
-    public function adminTenantSubscription(Tenant $tenant): array
+    public function adminTenantSubscription(Tenant $tenant, bool $includeOverrideHistory = false): array
     {
         $overview = $this->tenantOverview($tenant);
         $history = TenantSubscription::query()->forTenant((int) $tenant->id)
@@ -507,20 +510,23 @@ class SubscriptionPresenter
                 'created_at' => $s->created_at?->toIso8601String(),
             ])->all();
 
-        $overrides = TenantEntitlementOverride::query()
-            ->where('tenant_id', $tenant->id)
-            ->with('feature')
-            ->orderByDesc('id')
-            ->limit(100)
-            ->get()
-            ->map(fn (TenantEntitlementOverride $o) => app(EntitlementOverrideService::class)->present($o))
-            ->all();
-
-        return $overview + [
+        $payload = [
             'tenant' => ['id' => $tenant->id, 'name' => $tenant->name, 'plan_key' => $tenant->plan],
             'history' => $history,
-            'overrides' => $overrides,
         ];
+
+        if ($includeOverrideHistory) {
+            $payload['overrides'] = TenantEntitlementOverride::query()
+                ->where('tenant_id', $tenant->id)
+                ->with('feature')
+                ->orderByDesc('id')
+                ->limit(100)
+                ->get()
+                ->map(fn (TenantEntitlementOverride $o) => app(EntitlementOverrideService::class)->present($o))
+                ->all();
+        }
+
+        return $overview + $payload;
     }
 
     /**

@@ -983,6 +983,10 @@ class FamilyController extends Controller
                 'message' => 'Family member not found',
             ], 404);
         } catch (\Exception $e) {
+            if ($e instanceof Responsable) {
+                return $e->toResponse($request);
+            }
+
             \Log::error('Error updating family member', [
                 'family_id' => $familyId,
                 'member_id' => $memberId,

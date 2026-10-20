@@ -5,6 +5,7 @@ namespace Modules\Tenants\Tests\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Authentication\Models\Role;
 use Modules\Authentication\Models\User;
+use Modules\Tenants\Models\Tenant;
 use Modules\Tenants\Support\AuditLogViewerAuthorization;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -16,8 +17,9 @@ class AuditLogViewerAuthorizationTest extends TestCase
     #[Test]
     public function primary_tenant_admin_can_view_tenant_audit(): void
     {
+        $tenant = Tenant::factory()->create();
         $user = User::factory()->create([
-            'tenant_id' => 1,
+            'tenant_id' => $tenant->id,
             'is_primary_admin' => true,
         ]);
 
@@ -27,8 +29,9 @@ class AuditLogViewerAuthorizationTest extends TestCase
     #[Test]
     public function secondary_tenant_admin_cannot_view_tenant_audit(): void
     {
+        $tenant = Tenant::factory()->create();
         $user = User::factory()->create([
-            'tenant_id' => 1,
+            'tenant_id' => $tenant->id,
             'is_primary_admin' => false,
         ]);
 

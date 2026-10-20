@@ -86,15 +86,16 @@ class LeadershipSuccessionAcceptanceTest extends ChurchProfileCertificationTestC
         );
 
         $service = app(BishopUpdateRequestService::class);
+        $submitterId = (int) User::factory()->create(['tenant_id' => $this->tenantA->id])->id;
         $draft = $service->createDraft(
             $this->tenantA->id,
             $this->diocese->id,
             BishopUpdateRequestType::ChangeCurrentBishop,
             ['full_name' => 'Bishop Successor', 'given_name' => 'Successor'],
             ['effective_date' => '2026-03-01', 'end_reason' => 'retirement'],
-            1,
+            $submitterId,
         );
-        $submitted = $service->submit($draft->id, $this->tenantA->id, 1, 1);
+        $submitted = $service->submit($draft->id, $this->tenantA->id, (int) $draft->fresh()->version, $submitterId);
 
         Passport::actingAs($this->reviewer);
         $this->postJson("/api/ecclesiastical/bishop-update-requests/{$submitted->id}/approve", [

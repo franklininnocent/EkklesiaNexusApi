@@ -22,7 +22,9 @@ class PlatformProductionCheckTest extends TestCase
     public function production_check_command_runs_in_testing_environment(): void
     {
         $this->bindPublicCorsUrls();
-        $this->productionCheckConfig();
+        $this->productionCheckConfig([
+            'tenants.isolation.rls_enabled' => DB::getDriverName() === 'pgsql',
+        ]);
 
         $this->artisan('platform:production-check')
             ->expectsOutputToContain('Cache store is redis')

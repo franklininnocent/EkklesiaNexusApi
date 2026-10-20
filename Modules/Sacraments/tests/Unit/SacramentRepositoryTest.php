@@ -211,7 +211,7 @@ class SacramentRepositoryTest extends TestCase
             'sacrament_type_id' => $this->sacramentType->id,
             'recipient_name' => 'John Doe',
             'date_administered' => '2025-01-15',
-            'status' => 'active',
+            'status' => 'registered',
         ];
 
         // Act
