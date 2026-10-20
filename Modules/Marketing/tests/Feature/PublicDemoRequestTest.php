@@ -66,7 +66,7 @@ class PublicDemoRequestTest extends TestCase
         $this->assertNull($record->source_ip ?? null);
         $this->assertNotNull($record->source_ip_hash);
         $this->assertSame(64, strlen((string) $record->source_ip_hash));
-        Mail::assertQueued(DemoRequestNotificationMail::class);
+        Mail::assertSent(DemoRequestNotificationMail::class);
     }
 
     public function test_required_fields_are_validated(): void

@@ -45,8 +45,17 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'timeout' => (int) env('MAIL_TIMEOUT', 12),
+            'local_domain' => env('MAIL_EHLO_DOMAIN') ?: (function () {
+                $fromHost = strtolower((string) substr(strrchr((string) env('MAIL_FROM_ADDRESS', 'contact@ekklesianexus.com'), '@') ?: '', 1));
+                if ($fromHost !== '' && ! filter_var($fromHost, FILTER_VALIDATE_IP)) {
+                    return $fromHost;
+                }
+
+                $appHost = parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST);
+
+                return is_string($appHost) && $appHost !== '' ? $appHost : 'localhost';
+            })(),
         ],
 
         'ses' => [
