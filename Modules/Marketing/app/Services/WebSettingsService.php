@@ -115,6 +115,7 @@ class WebSettingsService
         $smtp = config('mail.mailers.smtp', []);
 
         $recipient = $this->recipientEmail();
+        $apiKeyConfigured = trim((string) config('services.resend.key')) !== '';
 
         return [
             'contact_form_enabled' => (bool) $settings->contact_form_enabled,
@@ -125,6 +126,7 @@ class WebSettingsService
             'from_address_configured' => $fromAddress !== '' && filter_var($fromAddress, FILTER_VALIDATE_EMAIL) !== false,
             'from_name_configured' => trim((string) config('mail.from.name')) !== '',
             'queue_connection' => (string) config('queue.default'),
+            'api_key_configured' => $mailer !== 'resend' || $apiKeyConfigured,
             'smtp_host_configured' => $mailer !== 'smtp' || trim((string) ($smtp['host'] ?? '')) !== '',
             'smtp_host' => $mailer === 'smtp' ? (trim((string) ($smtp['host'] ?? '')) ?: null) : null,
             'smtp_port' => $mailer === 'smtp' ? (int) ($smtp['port'] ?? 0) : null,
@@ -150,6 +152,10 @@ class WebSettingsService
         if ($mailer === 'smtp') {
             return trim((string) ($smtp['host'] ?? '')) !== ''
                 && (int) ($smtp['port'] ?? 0) > 0;
+        }
+
+        if ($mailer === 'resend') {
+            return trim((string) config('services.resend.key')) !== '';
         }
 
         return $mailer !== '';

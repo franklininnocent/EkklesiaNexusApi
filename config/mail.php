@@ -14,6 +14,8 @@ return [
     |
     */
 
+    // Local and tests stay on log/array. Production on DigitalOcean must set
+    // MAIL_MAILER=resend because outbound SMTP ports 25, 465, and 587 are blocked.
     'default' => env('MAIL_MAILER', 'log'),
 
     /*

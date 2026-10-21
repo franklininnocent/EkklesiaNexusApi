@@ -2,7 +2,6 @@
 
 namespace Modules\Marketing\Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Passport\Passport;
 use Modules\Authentication\Models\Role;
@@ -17,7 +16,6 @@ use Tests\TestCase;
 class AdminWebSettingsAndEnquiriesTest extends TestCase
 {
     use ActsAsTenantRoles;
-    use RefreshDatabase;
 
     public function test_guest_cannot_read_web_settings(): void
     {
@@ -99,6 +97,7 @@ class AdminWebSettingsAndEnquiriesTest extends TestCase
     public function test_test_email_reports_smtp_authentication_failure(): void
     {
         $this->asSuperAdmin();
+        config(['mail.default' => 'smtp']);
         Mail::shouldReceive('to')->once()->andThrow(
             new \RuntimeException('Failed to authenticate on SMTP server with username "contact@ekklesianexus.com". 535 Authentication Failed')
         );
@@ -111,6 +110,47 @@ class AdminWebSettingsAndEnquiriesTest extends TestCase
             'smtppro.zoho.in',
             (string) $response->json('message'),
         );
+    }
+
+    public function test_resend_diagnostics_require_an_api_key(): void
+    {
+        $this->asSuperAdmin();
+        config([
+            'mail.default' => 'resend',
+            'services.resend.key' => '',
+            'mail.from.address' => 'contact@ekklesianexus.com',
+        ]);
+
+        $this->getJson('/api/admin/web-settings')
+            ->assertOk()
+            ->assertJsonPath('data.diagnostics.mailer', 'resend')
+            ->assertJsonPath('data.diagnostics.api_key_configured', false)
+            ->assertJsonPath('data.diagnostics.transport_ready', false)
+            ->assertJsonMissingPath('data.diagnostics.resend_key');
+
+        config(['services.resend.key' => 're_test_key']);
+
+        $this->getJson('/api/admin/web-settings')
+            ->assertOk()
+            ->assertJsonPath('data.diagnostics.api_key_configured', true)
+            ->assertJsonPath('data.diagnostics.transport_ready', true);
+    }
+
+    public function test_test_email_reports_resend_domain_failure_without_smtp_guidance(): void
+    {
+        $this->asSuperAdmin();
+        config(['mail.default' => 'resend']);
+        Mail::shouldReceive('to')->once()->andThrow(
+            new \RuntimeException('Resend API error: domain is not verified')
+        );
+
+        $response = $this->postJson('/api/admin/web-settings/test-email')
+            ->assertStatus(502)
+            ->assertJsonPath('success', false);
+
+        $message = (string) $response->json('message');
+        $this->assertStringContainsString('Resend', $message);
+        $this->assertStringNotContainsString('smtppro.zoho.in', $message);
     }
 
     public function test_invalid_recipient_is_rejected(): void
