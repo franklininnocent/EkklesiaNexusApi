@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Mail;
 use Modules\Marketing\Mail\DemoRequestNotificationMail;
 use Modules\Marketing\Models\MarketingDemoRequest;
 use Modules\Marketing\Services\ContactCaptchaService;
+use RuntimeException;
 use Tests\TestCase;
 
 class PublicDemoRequestTest extends TestCase
@@ -67,6 +68,20 @@ class PublicDemoRequestTest extends TestCase
         $this->assertNotNull($record->source_ip_hash);
         $this->assertSame(64, strlen((string) $record->source_ip_hash));
         Mail::assertSent(DemoRequestNotificationMail::class);
+    }
+
+    public function test_mail_transport_timeout_still_accepts_the_demo_request(): void
+    {
+        Mail::shouldReceive('to')->once()->andThrow(new RuntimeException(
+            'Connection could not be established with host "smtppro.zoho.in:587": Connection timed out'
+        ));
+        config(['email.support_address' => 'support@example.com']);
+
+        $this->postJson('/api/public/demo-requests', $this->validPayload())
+            ->assertCreated()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseCount('marketing_demo_requests', 1);
     }
 
     public function test_required_fields_are_validated(): void
