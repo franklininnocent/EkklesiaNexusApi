@@ -10,6 +10,7 @@ use Modules\Marketing\Models\ContactEnquiry;
 use Modules\Marketing\Models\WebSetting;
 use Modules\Marketing\Services\ContactCaptchaService;
 use Modules\Marketing\Services\WebSettingsService;
+use RuntimeException;
 use Tests\TestCase;
 
 class PublicContactEnquiryTest extends TestCase
@@ -311,6 +312,23 @@ class PublicContactEnquiryTest extends TestCase
         $this->assertDatabaseCount('contact_enquiries', 1);
         $this->assertSame(ContactEnquiry::DELIVERY_SENT, ContactEnquiry::query()->value('delivery_status'));
         Mail::assertSent(ContactEnquiryNotificationMail::class);
+    }
+
+    public function test_mail_transport_timeout_still_accepts_the_enquiry(): void
+    {
+        Mail::shouldReceive('to')->once()->andThrow(new RuntimeException(
+            'Connection could not be established with host "smtppro.zoho.in:587": Connection timed out'
+        ));
+        [$id, $answer] = $this->seedCaptcha();
+
+        $this->postJson('/api/public/contact-enquiries', $this->validPayload($id, $answer))
+            ->assertCreated()
+            ->assertJsonPath('success', true);
+
+        $enquiry = ContactEnquiry::query()->first();
+        $this->assertNotNull($enquiry);
+        $this->assertSame(ContactEnquiry::DELIVERY_FAILED, $enquiry->delivery_status);
+        $this->assertNotSame('', (string) $enquiry->reference_number);
     }
 
     public function test_notification_uses_web_settings_recipient_not_super_admin_config(): void

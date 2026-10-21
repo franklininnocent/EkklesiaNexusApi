@@ -71,7 +71,9 @@ class ContactEnquiryService
             return $enquiry->fresh();
         }
 
-        $this->sendStoredEnquiryNotification($enquiry);
+        // SMTP connect runs after the response is flushed. A blocked port must not
+        // hold this request open until the public gateway returns 502.
+        SendContactEnquiryNotificationJob::dispatchAfterResponse($enquiry->id);
 
         return $enquiry->fresh();
     }
