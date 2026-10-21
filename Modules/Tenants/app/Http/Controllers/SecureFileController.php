@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -89,6 +91,7 @@ class SecureFileController
                 'X-XSS-Protection' => '1; mode=block',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error serving secure file', [
                 'path' => $request->query('path'),
                 'error' => $e->getMessage(),
@@ -157,6 +160,7 @@ class SecureFileController
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error generating signed URL', [
                 'error' => $e->getMessage(),
             ]);

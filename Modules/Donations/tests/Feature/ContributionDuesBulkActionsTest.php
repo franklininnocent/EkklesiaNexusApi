@@ -86,6 +86,9 @@ class ContributionDuesBulkActionsTest extends DonationsCertificationTestCase
             'tenant_id' => $ctx['tenant']->id,
             'status' => 'active',
         ]));
+        $overdueOn = now()->subDay()->toDateString();
+        $first['due']->update(['due_date' => $overdueOn]);
+        $second['due']->update(['due_date' => $overdueOn]);
         $foreign = $this->makeTenantUser(['donations.view']);
         $foreignDue = $this->seedDue($foreign['tenant']->id);
 

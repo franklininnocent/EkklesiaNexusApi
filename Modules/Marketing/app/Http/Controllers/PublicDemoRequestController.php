@@ -2,6 +2,8 @@
 
 namespace Modules\Marketing\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
@@ -70,6 +72,7 @@ class PublicDemoRequestController extends Controller
                 try {
                     Mail::to($supportAddress)->send(new DemoRequestNotificationMail($fresh));
                 } catch (Throwable $e) {
+                    ApiErrorResponse::rethrowExpected($e);
                     Log::warning('marketing.demo_request.mail_failed', [
                         'correlation_id' => $fresh->correlation_id,
                         'demo_request_id' => $fresh->id,

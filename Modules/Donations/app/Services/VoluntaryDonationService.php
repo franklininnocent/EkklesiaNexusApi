@@ -9,7 +9,6 @@ use Modules\Donations\Models\Donor;
 use Modules\Donations\Support\MoneyMath;
 use Modules\Family\Models\Family;
 use Modules\Family\Models\FamilyMember;
-use Modules\Tenants\Services\ChurchCurrencyResolver;
 use Modules\Tenants\Services\ChurchFinancialPeriodResolver;
 
 class VoluntaryDonationService
@@ -80,8 +79,6 @@ class VoluntaryDonationService
                 'payer_phone' => $isAnonymous ? null : ($payload['payer_phone'] ?? $donor?->phone),
                 'payment_date' => $payload['payment_date'] ?? now()->toDateString(),
                 'amount' => $amount,
-                'currency' => app(ChurchCurrencyResolver::class)
-                    ->currencyCodeForTenantId($tenantId) ?? 'INR',
                 'method' => $payload['method'] ?? 'cash',
                 'gateway_reference' => $payload['gateway_reference'] ?? null,
                 'status' => $payload['status'] ?? 'succeeded',

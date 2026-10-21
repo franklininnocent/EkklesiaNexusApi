@@ -180,36 +180,6 @@ class PersonParentRelationshipService
             ]);
         }
 
-        $memberGender = FamilyMember::query()
-            ->where('person_id', $parentPerson->id)
-            ->whereNull('deleted_at')
-            ->value('gender');
-
-        // #region agent log
-        $debugPayload = [
-            'sessionId' => '4efb69',
-            'runId' => 'pre-fix',
-            'hypothesisId' => 'A',
-            'location' => 'PersonParentRelationshipService.php:resolveParentSide',
-            'message' => 'parent gender check',
-            'data' => [
-                'side' => $side,
-                'expectedGender' => $expectedGender,
-                'personGender' => $parentPerson->gender,
-                'memberGender' => $memberGender,
-                'personIdSuffix' => substr((string) $parentPerson->id, -8),
-                'childPersonIdSuffix' => substr((string) $person->id, -8),
-                'gendersMatch' => $parentPerson->gender === $memberGender,
-                'wouldReject' => in_array($parentPerson->gender, ['male', 'female'], true)
-                    && $parentPerson->gender !== $expectedGender,
-                'memberWouldReject' => in_array($memberGender, ['male', 'female'], true)
-                    && $memberGender !== $expectedGender,
-            ],
-            'timestamp' => (int) (microtime(true) * 1000),
-        ];
-        @file_put_contents('/var/www/html/EkklesiaNexus/.cursor/debug-4efb69.log', json_encode($debugPayload)."\n", FILE_APPEND);
-        // #endregion
-
         if (
             in_array($parentPerson->gender, ['male', 'female'], true)
             && $parentPerson->gender !== $expectedGender

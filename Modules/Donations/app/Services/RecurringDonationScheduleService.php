@@ -2,10 +2,12 @@
 
 namespace Modules\Donations\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Modules\Donations\Models\Donation;
 use Modules\Donations\Models\Donor;
 use Modules\Donations\Models\RecurringDonationSchedule;
+use Modules\Tenants\Services\ChurchCurrencyResolver;
 
 class RecurringDonationScheduleService
 {
@@ -38,9 +40,28 @@ class RecurringDonationScheduleService
                 $processed++;
                 $scheduleIds[] = $schedule->id;
                 $actorUserId = (int) ($schedule->updated_by ?? $schedule->created_by ?? 1);
+                $lock = Cache::lock('donations:recurring-schedule:'.$schedule->id, 120);
+                if (! $lock->get()) {
+                    $failed++;
+                    $this->auditService->log(
+                        $schedule->tenant_id,
+                        'recurring.execution_failed',
+                        'recurring_schedule',
+                        $schedule->id,
+                        null,
+                        null,
+                        ['error' => 'Another run is already posting this schedule.']
+                    );
+
+                    continue;
+                }
 
                 try {
                     DB::transaction(function () use ($schedule, $actorUserId): void {
+                        $currency = app(ChurchCurrencyResolver::class)->currencyCodeForTenantId((int) $schedule->tenant_id);
+                        if (! is_string($currency) || $currency === '') {
+                            throw new \RuntimeException('Parish currency is not configured.');
+                        }
                         $donor = $schedule->donor_id
                             ? Donor::forTenant($schedule->tenant_id)->find($schedule->donor_id)
                             : null;
@@ -73,7 +94,6 @@ class RecurringDonationScheduleService
                             'payer_phone' => $donor?->phone,
                             'payment_date' => now()->toDateString(),
                             'amount' => (float) $schedule->amount,
-                            'currency' => $schedule->currency ?? 'INR',
                             'method' => 'online_placeholder',
                             'status' => 'succeeded',
                             'source_type' => 'recurring_schedule',
@@ -118,6 +138,8 @@ class RecurringDonationScheduleService
                         null,
                         ['error' => $exception->getMessage()]
                     );
+                } finally {
+                    $lock->release();
                 }
             }
         });

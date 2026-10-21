@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -66,6 +68,7 @@ class ChurchProfileController extends Controller
                 'data' => $churchProfileData,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching church profile: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
@@ -103,6 +106,7 @@ class ChurchProfileController extends Controller
                 'data' => $metrics,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching church status metrics: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),
@@ -190,6 +194,7 @@ class ChurchProfileController extends Controller
                     'data' => $churchProfileData,
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
@@ -200,6 +205,7 @@ class ChurchProfileController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating church profile: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
@@ -278,6 +284,7 @@ class ChurchProfileController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error uploading patron image: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
@@ -335,10 +342,12 @@ class ChurchProfileController extends Controller
                     'message' => 'Patron image deleted successfully',
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting patron image: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()

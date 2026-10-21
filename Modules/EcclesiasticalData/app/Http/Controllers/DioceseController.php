@@ -2,6 +2,8 @@
 
 namespace Modules\EcclesiasticalData\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -125,6 +127,7 @@ class DioceseController extends Controller
                 'message' => 'Dioceses retrieved successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve dioceses',
@@ -147,6 +150,7 @@ class DioceseController extends Controller
                 'message' => 'Diocese created successfully'
             ], 201);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create diocese',
@@ -169,6 +173,7 @@ class DioceseController extends Controller
                 'message' => 'Diocese retrieved successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Diocese not found',
@@ -191,6 +196,7 @@ class DioceseController extends Controller
                 'message' => 'Diocese updated successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update diocese',
@@ -212,6 +218,7 @@ class DioceseController extends Controller
                 'message' => 'Diocese deleted successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete diocese',
@@ -234,6 +241,7 @@ class DioceseController extends Controller
                 'message' => 'Dioceses retrieved successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve dioceses',
@@ -256,6 +264,7 @@ class DioceseController extends Controller
                 'message' => 'Archdioceses retrieved successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve archdioceses',
@@ -278,6 +287,7 @@ class DioceseController extends Controller
                 'message' => 'Statistics retrieved successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics',
@@ -308,6 +318,7 @@ class DioceseController extends Controller
                 'message' => 'Audit history retrieved successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve audit history',

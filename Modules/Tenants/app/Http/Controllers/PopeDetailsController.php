@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -59,6 +61,7 @@ class PopeDetailsController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching pope details: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),
@@ -126,6 +129,7 @@ class PopeDetailsController extends Controller
                     ],
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
@@ -136,6 +140,7 @@ class PopeDetailsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating pope details: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),
@@ -206,6 +211,7 @@ class PopeDetailsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error uploading pope image: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),
@@ -257,6 +263,7 @@ class PopeDetailsController extends Controller
                 'message' => 'Pope image deleted successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting pope image: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),

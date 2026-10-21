@@ -19,6 +19,42 @@ class ContributionBalance
         return MoneyMath::outstanding($due->amount_due ?? 0, $due->amount_paid ?? 0);
     }
 
+    /**
+     * A reminder may be sent only when the due is open, the period has started, and the due date has passed.
+     */
+    public static function isCollectableOverdue(object $due, string $businessDate): bool
+    {
+        if (! in_array((string) ($due->status ?? ''), ['pending', 'partially_paid'], true)) {
+            return false;
+        }
+
+        if (! MoneyMath::isPositive(self::outstandingString($due))) {
+            return false;
+        }
+
+        $periodStart = self::dateString($due->period_start ?? null);
+        $dueDate = self::dateString($due->due_date ?? null);
+        $started = $periodStart !== null
+            ? $periodStart <= $businessDate
+            : ($dueDate !== null && $dueDate <= $businessDate);
+        $overdue = $dueDate !== null && $dueDate < $businessDate;
+
+        return $started && $overdue;
+    }
+
+    private static function dateString(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_string($value) && $value !== '') {
+            return substr($value, 0, 10);
+        }
+
+        return null;
+    }
+
     public static function applyPaid(object $due, string|float|int $amount): string
     {
         $paid = MoneyMath::add($due->amount_paid ?? 0, $amount);

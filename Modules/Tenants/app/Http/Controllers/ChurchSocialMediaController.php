@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -60,6 +62,7 @@ class ChurchSocialMediaController extends Controller
                 'total' => $socialMedia->count(),
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching church social media: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
@@ -91,6 +94,7 @@ class ChurchSocialMediaController extends Controller
                 'data' => $socialMedia,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching social media account: ' . $e->getMessage(), [
                 'social_media_id' => $id,
                 'trace' => $e->getTraceAsString()
@@ -171,6 +175,7 @@ class ChurchSocialMediaController extends Controller
                     'data' => $socialMedia,
                 ], 201);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
@@ -181,6 +186,7 @@ class ChurchSocialMediaController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating social media account: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
@@ -261,6 +267,7 @@ class ChurchSocialMediaController extends Controller
                     'data' => $socialMedia,
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
@@ -271,6 +278,7 @@ class ChurchSocialMediaController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating social media account: ' . $e->getMessage(), [
                 'social_media_id' => $id,
                 'trace' => $e->getTraceAsString()
@@ -330,10 +338,12 @@ class ChurchSocialMediaController extends Controller
                     'message' => 'Social media account deleted successfully',
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting social media account: ' . $e->getMessage(), [
                 'social_media_id' => $id,
                 'trace' => $e->getTraceAsString()

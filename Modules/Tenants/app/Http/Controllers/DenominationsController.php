@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -44,6 +46,7 @@ class DenominationsController extends Controller
                 'total' => $denominations->count(),
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching denominations: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
@@ -71,6 +74,7 @@ class DenominationsController extends Controller
                 'data' => $denomination,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching denomination: ' . $e->getMessage(), [
                 'denomination_id' => $id,
                 'trace' => $e->getTraceAsString()

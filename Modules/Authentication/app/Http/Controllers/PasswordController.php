@@ -2,6 +2,8 @@
 
 namespace Modules\Authentication\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Authentication\Http\Requests\AdminResetPasswordRequest;
@@ -46,6 +48,7 @@ class PasswordController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             throw $e;
         }
     }

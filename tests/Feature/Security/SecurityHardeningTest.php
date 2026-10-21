@@ -51,7 +51,8 @@ class SecurityHardeningTest extends TestCase
 
         $response->assertUnauthorized()
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Unauthenticated.');
+            ->assertJsonPath('code', 'UNAUTHENTICATED')
+            ->assertJsonPath('message', 'Your session has expired. Please sign in again to continue.');
         $this->assertStringNotContainsString('<html', (string) $response->getContent());
         $this->assertStringNotContainsString('RouteNotFoundException', (string) $response->getContent());
     }

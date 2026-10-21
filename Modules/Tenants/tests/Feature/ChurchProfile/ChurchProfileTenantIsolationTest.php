@@ -35,13 +35,13 @@ class ChurchProfileTenantIsolationTest extends ChurchProfileCertificationTestCas
         $foreignSocial = $this->seedSocial($otherTenant, ['username' => 'foreign']);
 
         $this->putJson("/api/church-statistics/{$foreignStat->id}", ['membership_count' => 1])
-            ->assertStatus(500);
+            ->assertNotFound();
         $this->deleteJson("/api/church-statistics/{$foreignStat->id}")
-            ->assertStatus(500);
+            ->assertNotFound();
         $this->putJson("/api/church-social-media/{$foreignSocial->id}", ['username' => 'hacked'])
-            ->assertStatus(500);
+            ->assertNotFound();
         $this->deleteJson("/api/church-social-media/{$foreignSocial->id}")
-            ->assertStatus(500);
+            ->assertNotFound();
 
         $this->assertDatabaseHas('church_statistics', [
             'id' => $foreignStat->id,
