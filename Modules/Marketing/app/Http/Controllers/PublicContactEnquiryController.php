@@ -50,6 +50,10 @@ class PublicContactEnquiryController extends Controller
             throw $e;
         }
 
+        // #region agent log
+        @file_put_contents('/var/www/html/EkklesiaNexus/.cursor/debug-876da3.log', json_encode(['sessionId' => '876da3', 'hypothesisId' => 'D', 'location' => 'PublicContactEnquiryController.php:store', 'message' => 'returning contact enquiry response', 'data' => ['http_status' => 201, 'headers_sent' => headers_sent(), 'enquiry_id' => $enquiry->id], 'timestamp' => (int) round(microtime(true) * 1000)])."\n", FILE_APPEND);
+        // #endregion
+
         return response()->json([
             'success' => true,
             'message' => 'Thank you for contacting EkklesiaNexus. Your enquiry has been received successfully, and our team will be in touch.',
