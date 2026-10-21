@@ -75,6 +75,14 @@ class ContactEnquiryService
         // hold this request open until the public gateway returns 502.
         SendContactEnquiryNotificationJob::dispatchAfterResponse($enquiry->id);
 
+        // #region agent log
+        @file_put_contents('/var/www/html/EkklesiaNexus/.cursor/debug-876da3.log', json_encode(['sessionId' => '876da3', 'hypothesisId' => 'A', 'location' => 'ContactEnquiryService.php:submit', 'message' => 'notification scheduled after response', 'data' => ['dispatch' => 'after_response', 'mailer' => (string) config('mail.default'), 'enquiry_id' => $enquiry->id], 'timestamp' => (int) round(microtime(true) * 1000)])."\n", FILE_APPEND);
+        Log::info('web.contact_enquiry.response_ready', [
+            'enquiry_id' => $enquiry->id,
+            'dispatch' => 'after_response',
+        ]);
+        // #endregion
+
         return $enquiry->fresh();
     }
 
