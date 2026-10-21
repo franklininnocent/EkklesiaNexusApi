@@ -245,6 +245,12 @@ class ContributionDuesController extends Controller
     {
         $tenantId = app(TenantContext::class)->requireEffectiveTenantId();
         $due = ContributionDue::forTenant($tenantId)->findOrFail($id);
+        if (! \Modules\Donations\Support\ContributionBalance::isCollectableOverdue($due, \Modules\Donations\Support\DonationBusinessDate::today($tenantId))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Reminders are sent only for collectable overdue dues.',
+            ], 422);
+        }
 
         SendContributionReminderJob::dispatch($tenantId, $due->id);
 

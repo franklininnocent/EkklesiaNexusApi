@@ -59,6 +59,7 @@ class DonationProjectsController extends Controller
         $tenantId = app(TenantContext::class)->requireEffectiveTenantId();
 
         $project = DonationProject::forTenant($tenantId)
+            ->where('entity_kind', 'project')
             ->with(['fund', 'assignments.family'])
             ->withCount(['assignments', 'installmentDues'])
             ->findOrFail($id);
@@ -127,7 +128,9 @@ class DonationProjectsController extends Controller
     {
         $tenantId = app(TenantContext::class)->requireEffectiveTenantId();
         $userId = (int) Auth::id();
-        $project = DonationProject::forTenant($tenantId)->findOrFail($id);
+        $project = DonationProject::forTenant($tenantId)
+            ->where('entity_kind', 'project')
+            ->findOrFail($id);
 
         $project = $this->projectService->update($tenantId, $userId, $project, $request->validated());
 
@@ -158,7 +161,9 @@ class DonationProjectsController extends Controller
     {
         $tenantId = app(TenantContext::class)->requireEffectiveTenantId();
         $userId = (int) Auth::id();
-        $project = DonationProject::forTenant($tenantId)->findOrFail($id);
+        $project = DonationProject::forTenant($tenantId)
+            ->where('entity_kind', 'project')
+            ->findOrFail($id);
         $payload = $request->validated();
 
         try {

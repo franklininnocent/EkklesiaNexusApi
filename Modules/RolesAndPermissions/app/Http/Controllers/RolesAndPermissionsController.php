@@ -2,6 +2,8 @@
 
 namespace Modules\RolesAndPermissions\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -121,6 +123,7 @@ class RolesAndPermissionsController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching roles: '.$e->getMessage());
 
             return response()->json([
@@ -156,6 +159,7 @@ class RolesAndPermissionsController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching role: '.$e->getMessage());
 
             return response()->json([
@@ -262,6 +266,7 @@ class RolesAndPermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating role: '.$e->getMessage());
 
             return response()->json([
@@ -295,6 +300,7 @@ class RolesAndPermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating tenant role: '.$e->getMessage());
 
             return response()->json([
@@ -437,6 +443,7 @@ class RolesAndPermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating role: '.$e->getMessage());
 
             return response()->json([
@@ -472,6 +479,7 @@ class RolesAndPermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating tenant role: '.$e->getMessage());
 
             return response()->json([
@@ -552,6 +560,7 @@ class RolesAndPermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting role: '.$e->getMessage());
 
             return response()->json([
@@ -586,6 +595,7 @@ class RolesAndPermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting tenant role: '.$e->getMessage());
 
             return response()->json([
@@ -622,6 +632,7 @@ class RolesAndPermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error activating tenant role: '.$e->getMessage());
 
             return response()->json([
@@ -658,6 +669,7 @@ class RolesAndPermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deactivating tenant role: '.$e->getMessage());
 
             return response()->json([
@@ -702,6 +714,7 @@ class RolesAndPermissionsController extends Controller
                 'role' => $role,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error restoring role: '.$e->getMessage());
 
             return response()->json([
@@ -752,6 +765,7 @@ class RolesAndPermissionsController extends Controller
                 'role' => $role,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error activating role: '.$e->getMessage());
 
             return response()->json([
@@ -802,6 +816,7 @@ class RolesAndPermissionsController extends Controller
                 'role' => $role,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deactivating role: '.$e->getMessage());
 
             return response()->json([

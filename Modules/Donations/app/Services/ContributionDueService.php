@@ -14,6 +14,7 @@ use Modules\Donations\Jobs\SendContributionReminderJob;
 use Modules\Donations\Models\ContributionDue;
 use Modules\Donations\Models\ContributionPlan;
 use Modules\Donations\Models\ContributionPlanAssignment;
+use Modules\Donations\Support\ContributionBalance;
 use Modules\Donations\Support\ContributionPeriod;
 use Modules\Donations\Support\ContributionPlanFrequencies;
 use Modules\Donations\Support\DonationBusinessDate;
@@ -90,30 +91,30 @@ class ContributionDueService
     public function previewSchedule(ContributionPlan $plan, ?array $familyIds = null): array
     {
         if ($plan->status !== 'active') {
-            return [
+            return array_merge([
                 'period_count' => 0,
                 'family_count' => 0,
                 'estimated_new_ops' => 0,
                 'periods' => [],
-            ];
+            ], $this->emptyAssessment());
         }
 
         $periods = ContributionPeriod::enumerateForPlan($plan);
 
         if ($periods === []) {
-            return [
+            return array_merge([
                 'period_count' => 0,
                 'family_count' => 0,
                 'estimated_new_ops' => 0,
                 'periods' => [],
-            ];
+            ], $this->emptyAssessment());
         }
 
         $familyCount = $familyIds !== null
             ? count($familyIds)
             : $this->estimateEnrolledFamilyCount($plan, $periods);
 
-        return [
+        return array_merge([
             'period_count' => count($periods),
             'family_count' => $familyCount,
             'estimated_new_ops' => $familyCount * count($periods),
@@ -123,7 +124,7 @@ class ContributionDueService
                 'period_end' => $period['period_end'],
                 'due_date' => ContributionPeriod::applyGraceDays($period['due_date'], (int) $plan->grace_days),
             ], $periods),
-        ];
+        ], $this->assessBillingPreview($plan, $periods, $familyIds));
     }
 
     /**
@@ -187,6 +188,7 @@ class ContributionDueService
 
             $generated = 0;
             $unchanged = 0;
+            $exemptSkipped = 0;
 
             foreach ($periods as $period) {
                 $enrolled = $familyIds ?? $this->resolveEnrolledFamilyIds(
@@ -211,11 +213,15 @@ class ContributionDueService
                         $period,
                         $dueDate,
                         &$generated,
-                        &$unchanged
+                        &$unchanged,
+                        &$exemptSkipped
                     ): void {
                         foreach ($chunk as $familyId) {
                             $amount = $this->resolveAmountForFamily($plan, $familyId, $period['period_start']);
                             if ($amount === null || $amount <= 0) {
+                                if ($this->familyIsExempt($plan, $familyId, $period['period_start'])) {
+                                    $exemptSkipped++;
+                                }
                                 continue;
                             }
 
@@ -252,6 +258,7 @@ class ContributionDueService
                 [
                     'generated_count' => $generated,
                     'unchanged_count' => $unchanged,
+                    'exempt_skipped_count' => $exemptSkipped,
                     'period_count' => count($periods),
                 ],
                 ['mode' => $mode]
@@ -260,6 +267,7 @@ class ContributionDueService
             return [
                 'generated_count' => $generated,
                 'unchanged_count' => $unchanged,
+                'exempt_skipped_count' => $exemptSkipped,
                 'family_count' => $familyCount,
                 'period_count' => count($periods),
             ];
@@ -667,7 +675,13 @@ class ContributionDueService
      */
     public function bulkRemind(int $tenantId, array $dueIds): array
     {
-        return $this->processBulkDues($tenantId, $dueIds, function (ContributionDue $due) use ($tenantId): ?string {
+        $today = DonationBusinessDate::today($tenantId);
+
+        return $this->processBulkDues($tenantId, $dueIds, function (ContributionDue $due) use ($tenantId, $today): ?string {
+            if (! ContributionBalance::isCollectableOverdue($due, $today)) {
+                return 'Reminders are sent only for collectable overdue dues.';
+            }
+
             SendContributionReminderJob::dispatch($tenantId, $due->id);
 
             return null;
@@ -1031,6 +1045,78 @@ class ContributionDueService
                     $due->save();
                 }
             });
+    }
+
+    /**
+     * @return array{eligible_family_count: int, exempt_family_count: int, already_billed_count: int, expected_new_amount: float|int}
+     */
+    private function emptyAssessment(): array
+    {
+        return [
+            'eligible_family_count' => 0,
+            'exempt_family_count' => 0,
+            'already_billed_count' => 0,
+            'expected_new_amount' => MoneyMath::toApiNumber(0),
+        ];
+    }
+
+    /**
+     * Read-only counts for the billing confirm. Does not write dues.
+     *
+     * @param  array<int, array{period_label: string, period_start: string, period_end: string, due_date: string}>  $periods
+     * @param  array<int, string>|null  $familyIds
+     * @return array{eligible_family_count: int, exempt_family_count: int, already_billed_count: int, expected_new_amount: float|int}
+     */
+    private function assessBillingPreview(ContributionPlan $plan, array $periods, ?array $familyIds): array
+    {
+        $labels = array_column($periods, 'period_label');
+        $existingKeys = [];
+        ContributionDue::forTenant((int) $plan->tenant_id)
+            ->where('plan_id', $plan->id)
+            ->whereIn('period_label', $labels)
+            ->get(['family_id', 'period_label'])
+            ->each(function (ContributionDue $due) use (&$existingKeys): void {
+                $existingKeys[$due->family_id.'|'.$due->period_label] = true;
+            });
+
+        $eligibleFamilies = [];
+        $exemptFamilies = [];
+        $alreadyBilled = 0;
+        $expectedNew = '0';
+
+        foreach ($periods as $period) {
+            $enrolled = $familyIds ?? $this->getEnrolledFamilyIds($plan, $period['period_start'], $period['period_end']);
+            foreach ($enrolled as $familyId) {
+                $amount = $this->resolveAmountForFamily($plan, $familyId, $period['period_start']);
+                if ($amount === null || $amount <= 0) {
+                    if ($this->familyIsExempt($plan, $familyId, $period['period_start'])) {
+                        $exemptFamilies[$familyId] = true;
+                    }
+                    continue;
+                }
+
+                $eligibleFamilies[$familyId] = true;
+                $key = $familyId.'|'.$period['period_label'];
+                if (isset($existingKeys[$key])) {
+                    $alreadyBilled++;
+                    continue;
+                }
+
+                $expectedNew = MoneyMath::add($expectedNew, $amount);
+            }
+        }
+
+        return [
+            'eligible_family_count' => count($eligibleFamilies),
+            'exempt_family_count' => count($exemptFamilies),
+            'already_billed_count' => $alreadyBilled,
+            'expected_new_amount' => MoneyMath::toApiNumber($expectedNew),
+        ];
+    }
+
+    private function familyIsExempt(ContributionPlan $plan, string $familyId, string $asOfDate): bool
+    {
+        return (bool) $this->findActiveAssignment($plan, $familyId, $asOfDate)?->is_exempt;
     }
 
     private function findActiveAssignment(ContributionPlan $plan, string $familyId, string $asOfDate): ?ContributionPlanAssignment

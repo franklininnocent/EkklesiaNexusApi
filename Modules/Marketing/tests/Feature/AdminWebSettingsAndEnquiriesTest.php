@@ -22,7 +22,8 @@ class AdminWebSettingsAndEnquiriesTest extends TestCase
         $this->getJson('/api/admin/web-settings')->assertUnauthorized();
         $this->get('/api/admin/contact-enquiries')
             ->assertUnauthorized()
-            ->assertJsonPath('message', 'Unauthenticated.');
+            ->assertJsonPath('code', 'UNAUTHENTICATED')
+            ->assertJsonPath('message', 'Your session has expired. Please sign in again to continue.');
     }
 
     public function test_tenant_admin_cannot_read_or_update_web_settings(): void

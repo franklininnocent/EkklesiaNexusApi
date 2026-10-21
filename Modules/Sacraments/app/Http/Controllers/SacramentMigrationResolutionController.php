@@ -2,6 +2,8 @@
 
 namespace Modules\Sacraments\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -117,6 +119,7 @@ class SacramentMigrationResolutionController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Migration resolve failed', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -142,6 +145,7 @@ class SacramentMigrationResolutionController extends Controller
                 'message' => $dryRun ? 'Dry run complete' : 'Backfill complete',
             ]);
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Migration backfill failed', ['error' => $e->getMessage()]);
 
             return response()->json([

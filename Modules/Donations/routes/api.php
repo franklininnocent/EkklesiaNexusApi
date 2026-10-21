@@ -123,7 +123,7 @@ Route::prefix('tenant/donations')->middleware(['donations.security.log', 'auth:a
     Route::get('/payments/collect-context', [DonationPaymentsController::class, 'collectContext']);
     Route::post('/payments', [DonationPaymentsController::class, 'store'])->middleware('tenant.permission:donations.collect');
     Route::get('/expenses', [ParishExpensesController::class, 'index']);
-    Route::post('/expenses', [ParishExpensesController::class, 'store'])->middleware('tenant.permission:donations.collect');
+    Route::post('/expenses', [ParishExpensesController::class, 'store'])->middleware('tenant.permission:donations.manage');
     Route::post('/payments/{id}/reverse', [DonationPaymentsController::class, 'reverse'])->middleware('tenant.permission:donations.reverse');
     Route::post('/payments/{id}/refunds', [DonationPaymentsController::class, 'requestRefund'])->middleware('tenant.permission:donations.refund');
     Route::get('/payment-batches', [PaymentBatchesController::class, 'index']);

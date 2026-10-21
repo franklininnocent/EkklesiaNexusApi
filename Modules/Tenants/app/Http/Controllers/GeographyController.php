@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -49,6 +51,7 @@ class GeographyController extends Controller
                 'message' => 'Countries retrieved successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching countries: ' . $e->getMessage());
             
             return response()->json([
@@ -100,6 +103,7 @@ class GeographyController extends Controller
                 'message' => 'States retrieved successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error("Error fetching states for country {$countryId}: " . $e->getMessage());
             
             return response()->json([
@@ -147,6 +151,7 @@ class GeographyController extends Controller
                 'message' => 'Search completed successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error searching countries: ' . $e->getMessage());
             
             return response()->json([
@@ -195,6 +200,7 @@ class GeographyController extends Controller
                 'message' => 'Search completed successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error("Error searching states for country {$countryId}: " . $e->getMessage());
             
             return response()->json([
@@ -235,6 +241,7 @@ class GeographyController extends Controller
                 'message' => 'Geography cache cleared successfully'
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error clearing geography cache: ' . $e->getMessage());
             
             return response()->json([

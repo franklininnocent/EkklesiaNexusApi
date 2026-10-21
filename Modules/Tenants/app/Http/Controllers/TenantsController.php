@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -141,6 +143,7 @@ class TenantsController extends Controller
 
             return response()->json($result);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching tenants list: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -199,6 +202,7 @@ class TenantsController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching tenant: '.$e->getMessage(), [
                 'tenant_id' => $id,
                 'trace' => $e->getTraceAsString(),
@@ -239,6 +243,7 @@ class TenantsController extends Controller
                 'message' => 'Tenant not found',
             ], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching tenant details snapshot: '.$e->getMessage(), [
                 'tenant_id' => $id,
                 'trace' => $e->getTraceAsString(),
@@ -370,6 +375,7 @@ class TenantsController extends Controller
                 DB::statement("SELECT setval('roles_id_seq', {$nextId}, true)");
                 Log::info('Roles sequence synchronized', ['max_id' => $maxId, 'next_id' => $nextId]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 Log::warning('Could not reset roles sequence, continuing anyway', ['error' => $e->getMessage()]);
             }
 
@@ -559,6 +565,7 @@ class TenantsController extends Controller
                 'data' => $tenant,
             ], 201);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             DB::rollBack();
 
             if ($e instanceof Responsable) {
@@ -883,6 +890,7 @@ class TenantsController extends Controller
                 'message' => $e->publicMessage(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             DB::rollBack();
 
             Log::error('Error updating tenant: '.$e->getMessage(), [
@@ -945,6 +953,7 @@ class TenantsController extends Controller
                 'message' => 'Tenant deleted successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             DB::rollBack();
 
             Log::error('Error deleting tenant: '.$e->getMessage(), [
@@ -1014,6 +1023,7 @@ class TenantsController extends Controller
                     ]
                 );
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 // Log error but don't fail the status update
                 Log::error('Failed to create audit log entry', [
                     'tenant_id' => $tenant->id,
@@ -1048,6 +1058,7 @@ class TenantsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating tenant status: '.$e->getMessage(), [
                 'tenant_id' => $id,
                 'trace' => $e->getTraceAsString(),
@@ -1109,6 +1120,7 @@ class TenantsController extends Controller
                 'message' => $e->publicMessage(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error uploading logo: '.$e->getMessage(), [
                 'tenant_id' => $id,
                 'trace' => $e->getTraceAsString(),
@@ -1166,6 +1178,7 @@ class TenantsController extends Controller
                 'message' => 'Logo deleted successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting logo: '.$e->getMessage(), [
                 'tenant_id' => $id,
                 'trace' => $e->getTraceAsString(),
@@ -1230,6 +1243,7 @@ class TenantsController extends Controller
                 'data' => $stats,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching tenant statistics: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -1304,6 +1318,7 @@ class TenantsController extends Controller
                 'data' => $tenant,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching church profile: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),
@@ -1383,6 +1398,7 @@ class TenantsController extends Controller
                 'message' => $e->publicMessage(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error uploading church logo: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),
@@ -1450,6 +1466,7 @@ class TenantsController extends Controller
                 'message' => 'Logo deleted successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting church logo: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),
@@ -1567,6 +1584,7 @@ class TenantsController extends Controller
                     'data' => $tenant,
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
@@ -1577,6 +1595,7 @@ class TenantsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating church profile: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),
@@ -1656,6 +1675,7 @@ class TenantsController extends Controller
                 'message' => $message,
             ], $code);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error upgrading subscription: '.$e->getMessage(), [
                 'tenant_id' => $id,
                 'trace' => $e->getTraceAsString(),
@@ -1720,6 +1740,7 @@ class TenantsController extends Controller
                 'message' => 'Invalid subscription duration',
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error renewing subscription: '.$e->getMessage(), [
                 'tenant_id' => $id,
                 'trace' => $e->getTraceAsString(),
@@ -1770,6 +1791,7 @@ class TenantsController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error suspending subscription: '.$e->getMessage(), ['tenant_id' => $id]);
 
             return response()->json([
@@ -1817,6 +1839,7 @@ class TenantsController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error reactivating subscription: '.$e->getMessage(), ['tenant_id' => $id]);
 
             return response()->json([
@@ -1870,6 +1893,7 @@ class TenantsController extends Controller
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching subscription audits: '.$e->getMessage(), ['tenant_id' => $id]);
 
             return response()->json([
@@ -1910,6 +1934,7 @@ class TenantsController extends Controller
                 'data' => $this->subscriptionService->buildAccessSnapshot($tenant) + $this->entitlementAccessSummary($tenant, false),
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching subscription access: '.$e->getMessage());
 
             return response()->json([
@@ -1934,6 +1959,7 @@ class TenantsController extends Controller
         try {
             return app(TenantEntitlementGate::class)->accessSummary($tenant, $withUsage);
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             report($e);
 
             return [];
@@ -1985,6 +2011,7 @@ class TenantsController extends Controller
                 'data' => $this->subscriptionService->buildSummary($tenant) + $this->entitlementAccessSummary($tenant, true),
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching my subscription: '.$e->getMessage());
 
             return response()->json([
@@ -2019,6 +2046,7 @@ class TenantsController extends Controller
         } catch (ModelNotFoundException) {
             return response()->json(['success' => false, 'message' => 'Tenant not found'], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching tenant subscription access policy: '.$e->getMessage());
 
             return response()->json([
@@ -2067,6 +2095,7 @@ class TenantsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating tenant subscription access policy: '.$e->getMessage());
 
             return response()->json([
@@ -2103,6 +2132,7 @@ class TenantsController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching subscription settings: '.$e->getMessage());
 
             return response()->json([
@@ -2153,6 +2183,7 @@ class TenantsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating subscription settings: '.$e->getMessage());
 
             return response()->json([
@@ -2209,6 +2240,7 @@ class TenantsController extends Controller
                 'duration_options' => $durationOptions,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching subscription plans: '.$e->getMessage());
 
             return response()->json([
@@ -2241,6 +2273,7 @@ class TenantsController extends Controller
                 'data' => $options,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching duration options: '.$e->getMessage());
 
             return response()->json([
@@ -2298,6 +2331,7 @@ class TenantsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating duration option: '.$e->getMessage());
 
             return response()->json([
@@ -2351,6 +2385,7 @@ class TenantsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating duration option: '.$e->getMessage());
 
             return response()->json([
@@ -2389,6 +2424,7 @@ class TenantsController extends Controller
                 'message' => 'Duration option deleted successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting duration option: '.$e->getMessage());
 
             return response()->json([
@@ -2435,6 +2471,7 @@ class TenantsController extends Controller
                 'data' => $plans,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching subscription plans: '.$e->getMessage());
 
             return response()->json([
@@ -2502,6 +2539,7 @@ class TenantsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating subscription plan: '.$e->getMessage());
 
             return response()->json([
@@ -2570,6 +2608,7 @@ class TenantsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating subscription plan: '.$e->getMessage());
 
             return response()->json([
@@ -2630,6 +2669,7 @@ class TenantsController extends Controller
                 'message' => 'Subscription plan deleted successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting subscription plan: '.$e->getMessage());
 
             return response()->json([

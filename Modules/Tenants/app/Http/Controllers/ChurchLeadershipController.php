@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -80,6 +82,7 @@ class ChurchLeadershipController extends Controller
                 'total' => $leaders->count(),
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching church leadership: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
@@ -111,6 +114,7 @@ class ChurchLeadershipController extends Controller
                 'data' => $leader,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching church leader: ' . $e->getMessage(), [
                 'leader_id' => $id,
                 'trace' => $e->getTraceAsString()
@@ -196,6 +200,7 @@ class ChurchLeadershipController extends Controller
                     'data' => $leader,
                 ], 201);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
@@ -206,6 +211,7 @@ class ChurchLeadershipController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating church leader: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
@@ -290,6 +296,7 @@ class ChurchLeadershipController extends Controller
                     'data' => $leader->fresh(),
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
@@ -300,6 +307,7 @@ class ChurchLeadershipController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating church leader: ' . $e->getMessage(), [
                 'leader_id' => $id,
                 'trace' => $e->getTraceAsString()
@@ -362,6 +370,7 @@ class ChurchLeadershipController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error uploading church leader photo: '.$e->getMessage(), [
                 'leader_id' => $id,
                 'user_id' => auth()->id(),
@@ -424,10 +433,12 @@ class ChurchLeadershipController extends Controller
                     'message' => 'Church leader deleted successfully',
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting church leader: ' . $e->getMessage(), [
                 'leader_id' => $id,
                 'trace' => $e->getTraceAsString()

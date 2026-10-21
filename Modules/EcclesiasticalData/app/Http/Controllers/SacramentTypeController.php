@@ -2,6 +2,8 @@
 
 namespace Modules\EcclesiasticalData\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -92,6 +94,7 @@ class SacramentTypeController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching sacrament types', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -135,6 +138,7 @@ class SacramentTypeController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching sacrament type', [
                 'id' => $id,
                 'error' => $e->getMessage(),
@@ -203,6 +207,7 @@ class SacramentTypeController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating sacrament type', [
                 'error' => $e->getMessage(),
                 'user_id' => $request->user()->id ?? null,
@@ -274,6 +279,7 @@ class SacramentTypeController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating sacrament type', [
                 'id' => $id,
                 'error' => $e->getMessage(),
@@ -332,6 +338,7 @@ class SacramentTypeController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting sacrament type', [
                 'id' => $id,
                 'error' => $e->getMessage(),
@@ -378,6 +385,7 @@ class SacramentTypeController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching sacrament type statistics', [
                 'error' => $e->getMessage(),
             ]);

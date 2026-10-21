@@ -70,7 +70,7 @@ class ParishActivityFeedPresenter
             'donation.created', 'donation.updated' => ['label' => 'View register', 'path' => '/donations/register'],
             'payment.created', 'payment.reversed' => ['label' => 'View payments', 'path' => '/donations/payments'],
             'refund.requested' => ['label' => 'View payments', 'path' => '/donations/payments'],
-            'project.created', 'project.updated', 'project.installments_generated' => ['label' => 'View projects', 'path' => '/donations/projects'],
+            'project.created', 'project.updated', 'project.installments_generated' => $this->projectAction($newValues, $oldValues),
             'project_installment.waived', 'project_installment.cancelled' => ['label' => 'View installments', 'path' => '/donations/project-installments'],
             'due.created', 'due.waived', 'due.cancelled', 'due.bulk_generated' => ['label' => 'View dues', 'path' => '/donations/dues'],
             'recurring.created', 'recurring.updated', 'recurring.executed', 'recurring.execution_failed' => ['label' => 'View recurring gifts', 'path' => '/donations/recurring'],
@@ -78,6 +78,31 @@ class ParishActivityFeedPresenter
             'report.exported' => ['label' => 'View reports', 'path' => '/donations/reports'],
             default => $this->fallbackAction($targetType, $subjectId),
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $newValues
+     * @param  array<string, mixed>  $oldValues
+     * @return array{label: string, path: string}
+     */
+    private function projectAction(array $newValues, array $oldValues): array
+    {
+        if ($this->isCampaign($newValues, $oldValues)) {
+            return ['label' => 'View campaigns', 'path' => '/donations/campaigns'];
+        }
+
+        return ['label' => 'View projects', 'path' => '/donations/projects'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $newValues
+     * @param  array<string, mixed>  $oldValues
+     */
+    private function isCampaign(array $newValues, array $oldValues): bool
+    {
+        $kind = (string) ($newValues['entity_kind'] ?? $oldValues['entity_kind'] ?? '');
+
+        return $kind === 'campaign';
     }
 
     /**
@@ -215,15 +240,19 @@ class ParishActivityFeedPresenter
             'project.created' => [
                 'category' => 'projects',
                 'icon' => 'project',
-                'title' => 'Project Created',
-                'description' => "{$name} project was created.",
+                'title' => $this->isCampaign($newValues, $oldValues) ? 'Campaign Created' : 'Project Created',
+                'description' => $this->isCampaign($newValues, $oldValues)
+                    ? "{$name} campaign was created. It is a parish target, not a family bill."
+                    : "{$name} project was created.",
                 'requires_attention' => false,
             ],
             'project.updated' => [
                 'category' => 'projects',
                 'icon' => 'project',
-                'title' => 'Project Updated',
-                'description' => "{$name} project was updated.",
+                'title' => $this->isCampaign($newValues, $oldValues) ? 'Campaign Updated' : 'Project Updated',
+                'description' => $this->isCampaign($newValues, $oldValues)
+                    ? "{$name} campaign was updated."
+                    : "{$name} project was updated.",
                 'requires_attention' => false,
             ],
             'project.installments_generated' => [

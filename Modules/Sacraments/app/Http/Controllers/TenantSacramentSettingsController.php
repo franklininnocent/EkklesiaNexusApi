@@ -2,6 +2,8 @@
 
 namespace Modules\Sacraments\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,6 +43,7 @@ class TenantSacramentSettingsController extends Controller
                 'message' => 'Sacrament settings retrieved successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error listing tenant sacrament settings', [
                 'error' => $e->getMessage(),
             ]);
@@ -81,6 +84,7 @@ class TenantSacramentSettingsController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating tenant sacrament setting', [
                 'sacrament_type_id' => $sacramentType,
                 'error' => $e->getMessage(),

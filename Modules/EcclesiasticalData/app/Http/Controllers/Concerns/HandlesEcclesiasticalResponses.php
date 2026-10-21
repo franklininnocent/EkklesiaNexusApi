@@ -53,11 +53,16 @@ trait HandlesEcclesiasticalResponses
                 $e->errors,
             );
         } catch (InvalidArgumentException $e) {
+            $message = \App\Support\ApiErrorResponse::publicMessage(
+                $e,
+                'The file could not be accepted. Check the file type and size, then try again.'
+            );
+
             return $this->ecclesiasticalError(
-                $e->getMessage(),
+                $message,
                 422,
-                $e->getMessage(),
-                ['image' => [$e->getMessage()]],
+                $message,
+                ['image' => [$message]],
             );
         } catch (ImageMediaException $e) {
             return $this->ecclesiasticalError(
@@ -66,14 +71,12 @@ trait HandlesEcclesiasticalResponses
                 $e->publicMessage(),
                 ['image' => [$e->publicMessage()]],
             );
-        } catch (ModelNotFoundException $e) {
-            return $this->ecclesiasticalError($failureMessage, 404, $e->getMessage());
+        } catch (ModelNotFoundException) {
+            return $this->ecclesiasticalError($failureMessage, 404);
         } catch (Throwable $e) {
-            if ($notFoundStatus === 404 && str_contains(strtolower($e->getMessage()), 'not found')) {
-                return $this->ecclesiasticalError($failureMessage, 404, $e->getMessage());
-            }
+            \App\Support\ApiErrorResponse::rethrowExpected($e);
 
-            return $this->ecclesiasticalError($failureMessage, 500, $e->getMessage());
+            return $this->ecclesiasticalError($failureMessage, 500);
         }
     }
 
