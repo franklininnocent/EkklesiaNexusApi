@@ -564,7 +564,7 @@ class DonationLedgerService
             'project' => DonationProject::forTenant($tenantId)->where('id', $id)->exists(),
             'project_installment' => ProjectInstallmentDue::forTenant($tenantId)->where('id', $id)->exists(),
             'plan' => ContributionPlan::forTenant($tenantId)->where('id', $id)->exists(),
-            'fund' => Fund::forTenant($tenantId)->where('id', $id)->exists(),
+            'fund' => Fund::forTenant($tenantId)->where('id', $id)->where('status', 'active')->exists(),
             default => false,
         };
     }
@@ -674,7 +674,10 @@ class DonationLedgerService
     private function resolvePaymentCurrency(int $tenantId): string
     {
         $code = app(ChurchCurrencyResolver::class)->currencyCodeForTenantId($tenantId);
+        if (! is_string($code) || $code === '') {
+            throw new \RuntimeException('Parish currency is not configured.');
+        }
 
-        return $code ?? 'INR';
+        return $code;
     }
 }

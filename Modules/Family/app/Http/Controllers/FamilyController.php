@@ -2,6 +2,8 @@
 
 namespace Modules\Family\app\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Support\Responsable;
@@ -171,6 +173,7 @@ class FamilyController extends Controller
         } catch (HouseholdTransitionException $e) {
             return $this->transitionErrorResponse($e);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to preview BCC relocation',
@@ -213,6 +216,7 @@ class FamilyController extends Controller
         } catch (HouseholdTransitionException $e) {
             return $this->transitionErrorResponse($e);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to relocate family BCC',
@@ -245,6 +249,7 @@ class FamilyController extends Controller
         } catch (HouseholdTransitionException $e) {
             return $this->transitionErrorResponse($e);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             if ($e instanceof Responsable) {
                 return $e->toResponse($request);
             }
@@ -277,6 +282,7 @@ class FamilyController extends Controller
                 'data' => $histories,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve transition history',
@@ -305,6 +311,7 @@ class FamilyController extends Controller
         } catch (HouseholdTransitionException $e) {
             return $this->transitionErrorResponse($e);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to record history correction',
@@ -384,6 +391,7 @@ class FamilyController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve families',
@@ -431,6 +439,7 @@ class FamilyController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             if ($e instanceof Responsable) {
                 return $e->toResponse($request);
             }
@@ -484,6 +493,7 @@ class FamilyController extends Controller
                 'message' => 'Family not found',
             ], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve family',
@@ -557,6 +567,7 @@ class FamilyController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             if ($e instanceof Responsable) {
                 return $e->toResponse($request);
             }
@@ -620,6 +631,7 @@ class FamilyController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete family',
@@ -651,6 +663,7 @@ class FamilyController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics',
@@ -702,6 +715,7 @@ class FamilyController extends Controller
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve family dashboard',
@@ -732,6 +746,7 @@ class FamilyController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve families',
@@ -763,6 +778,7 @@ class FamilyController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve families',
@@ -820,6 +836,7 @@ class FamilyController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve family members',
@@ -875,6 +892,7 @@ class FamilyController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             if ($e instanceof Responsable) {
                 return $e->toResponse($request);
             }
@@ -983,6 +1001,7 @@ class FamilyController extends Controller
                 'message' => 'Family member not found',
             ], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             if ($e instanceof Responsable) {
                 return $e->toResponse($request);
             }
@@ -1076,6 +1095,7 @@ class FamilyController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete family member',
@@ -1116,6 +1136,7 @@ class FamilyController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             if ($e instanceof Responsable) {
                 return $e->toResponse($request);
             }
@@ -1158,6 +1179,7 @@ class FamilyController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to merge families',
@@ -1201,6 +1223,7 @@ class FamilyController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to submit update request',
@@ -1257,6 +1280,7 @@ class FamilyController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload profile image',
@@ -1296,6 +1320,7 @@ class FamilyController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete profile image',
@@ -1352,6 +1377,7 @@ class FamilyController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload head profile image',
@@ -1391,6 +1417,7 @@ class FamilyController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete head profile image',
@@ -1433,6 +1460,7 @@ class FamilyController extends Controller
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve member dashboard',
@@ -1474,6 +1502,7 @@ class FamilyController extends Controller
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve member celebrations',
@@ -1543,6 +1572,7 @@ class FamilyController extends Controller
                 'to' => $payload['to'],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve member celebrations',
@@ -1609,6 +1639,7 @@ class FamilyController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve members',

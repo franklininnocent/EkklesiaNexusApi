@@ -2,12 +2,17 @@
 
 namespace Modules\Donations\Http\Controllers\Concerns;
 
+use App\Support\ApiErrorResponse;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Modules\Donations\Exceptions\DonationDomainException;
 use Modules\Donations\Services\DonationIdempotencyService;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 trait HandlesDonationIdempotency
 {
@@ -57,17 +62,28 @@ trait HandlesDonationIdempotency
 
                 return response()->json($payload, (int) $result['status']);
             });
-        } catch (ModelNotFoundException $exception) {
-            throw $exception;
+        } catch (DonationDomainException $exception) {
+            return response()->json([
+                'success' => false,
+                'code' => $exception->errorCode,
+                'message' => ApiErrorResponse::publicMessage($exception, ApiErrorResponse::VALIDATION_SUMMARY),
+            ], $exception->status);
         } catch (ConflictHttpException $exception) {
             return response()->json([
                 'success' => false,
-                'message' => $exception->getMessage(),
+                'code' => ApiErrorResponse::CONFLICT,
+                'message' => ApiErrorResponse::publicMessage(
+                    $exception,
+                    'A payment with this idempotency key is already in progress.'
+                ),
             ], 409);
+        } catch (ModelNotFoundException|ValidationException|QueryException|HttpExceptionInterface $exception) {
+            throw $exception;
         } catch (\RuntimeException $exception) {
             return response()->json([
                 'success' => false,
-                'message' => $exception->getMessage(),
+                'code' => ApiErrorResponse::BUSINESS_RULE,
+                'message' => ApiErrorResponse::publicMessage($exception, ApiErrorResponse::VALIDATION_SUMMARY),
             ], 422);
         }
     }

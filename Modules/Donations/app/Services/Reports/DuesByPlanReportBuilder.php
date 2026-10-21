@@ -56,7 +56,7 @@ final class DuesByPlanReportBuilder extends AbstractDonationReportBuilder
 
     public function csvHeaders(): array
     {
-        return ['plan_name', 'period_label', 'amount_due', 'amount_paid', 'outstanding', 'waived_count'];
+        return ['plan_name', 'period_label', 'amount_due', 'amount_paid', 'outstanding', 'waived_count', 'cancelled_count'];
     }
 
     public function streamCsv(int $tenantId, ReportFilter $filter, $handle): int
@@ -82,7 +82,13 @@ final class DuesByPlanReportBuilder extends AbstractDonationReportBuilder
             ->join('contribution_plans as p', 'p.id', '=', 'd.plan_id')
             ->where('d.tenant_id', $tenantId)
             ->whereNull('d.deleted_at')
-            ->selectRaw('p.name as plan_name, d.period_label, SUM(d.amount_due) as amount_due, SUM(d.amount_paid) as amount_paid, SUM(CASE WHEN d.status = ? THEN 1 ELSE 0 END) as waived_count', ['waived'])
+            ->selectRaw(
+                'p.name as plan_name, d.period_label, SUM(d.amount_due) as amount_due, SUM(d.amount_paid) as amount_paid, '
+                .'SUM(CASE WHEN d.status IN (\'pending\', \'partially_paid\') THEN GREATEST(d.amount_due - d.amount_paid, 0) ELSE 0 END) as open_outstanding, '
+                .'SUM(CASE WHEN d.status = ? THEN 1 ELSE 0 END) as waived_count, '
+                .'SUM(CASE WHEN d.status = ? THEN 1 ELSE 0 END) as cancelled_count',
+                ['waived', 'cancelled']
+            )
             ->groupBy('p.name', 'd.period_label')
             ->orderBy('d.period_label');
 
@@ -110,15 +116,15 @@ final class DuesByPlanReportBuilder extends AbstractDonationReportBuilder
         return collect($query->get())->map(function ($row) {
             $due = (string) $row->amount_due;
             $paid = (string) $row->amount_paid;
-            $outstanding = MoneyMath::outstanding($due, $paid);
 
             return [
                 'plan_name' => $row->plan_name,
                 'period_label' => $row->period_label,
                 'amount_due' => MoneyMath::toApiNumber($due),
                 'amount_paid' => MoneyMath::toApiNumber($paid),
-                'outstanding' => MoneyMath::toApiNumber($outstanding),
+                'outstanding' => MoneyMath::toApiNumber($row->open_outstanding ?? 0),
                 'waived_count' => (int) $row->waived_count,
+                'cancelled_count' => (int) ($row->cancelled_count ?? 0),
             ];
         })->all();
     }
@@ -134,6 +140,8 @@ final class DuesByPlanReportBuilder extends AbstractDonationReportBuilder
             ['key' => 'amount_due', 'label' => 'Due'],
             ['key' => 'amount_paid', 'label' => 'Collected'],
             ['key' => 'outstanding', 'label' => 'Outstanding'],
+            ['key' => 'waived_count', 'label' => 'Waived'],
+            ['key' => 'cancelled_count', 'label' => 'Cancelled'],
         ];
     }
 
@@ -146,6 +154,7 @@ final class DuesByPlanReportBuilder extends AbstractDonationReportBuilder
             $row['amount_paid'],
             $row['outstanding'],
             $row['waived_count'],
+            $row['cancelled_count'],
         ];
     }
 }

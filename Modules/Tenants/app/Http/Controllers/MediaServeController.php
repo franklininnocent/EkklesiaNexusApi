@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -85,6 +87,7 @@ class MediaServeController
         } catch (ImageMediaException $e) {
             return $this->deny($e->publicMessage(), 403);
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Image media serve failed', [
                 'error' => $e->getMessage(),
                 'user_id' => Auth::id(),

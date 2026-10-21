@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -97,6 +99,7 @@ class ArchdiocesesController extends Controller
                 'total' => $archdioceses->count(),
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching archdioceses: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
@@ -124,6 +127,7 @@ class ArchdiocesesController extends Controller
                 'data' => $archdiocese,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching archdiocese: ' . $e->getMessage(), [
                 'archdiocese_id' => $id,
                 'trace' => $e->getTraceAsString()
@@ -157,6 +161,7 @@ class ArchdiocesesController extends Controller
                 'total' => $countries->count(),
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching archdiocese countries: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);

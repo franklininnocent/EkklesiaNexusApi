@@ -2,6 +2,8 @@
 
 namespace Modules\Sacraments\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -122,6 +124,7 @@ class SacramentController extends Controller
                 'message' => 'Sacraments retrieved successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching sacraments', [
                 'error' => $e->getMessage(),
                 'user_id' => $request->user()->id ?? null,
@@ -164,6 +167,7 @@ class SacramentController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching sacrament', [
                 'id' => $id,
                 'error' => $e->getMessage(),
@@ -234,6 +238,7 @@ class SacramentController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating sacrament', [
                 'error' => $e->getMessage(),
                 'user_id' => $request->user()->id ?? null,
@@ -298,6 +303,7 @@ class SacramentController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating sacrament', [
                 'id' => $id,
                 'error' => $e->getMessage(),
@@ -339,6 +345,7 @@ class SacramentController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error correcting sacrament', ['id' => $id, 'error' => $e->getMessage()]);
 
             return response()->json([
@@ -371,6 +378,7 @@ class SacramentController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error voiding sacrament', ['id' => $id, 'error' => $e->getMessage()]);
 
             return response()->json([
@@ -398,6 +406,7 @@ class SacramentController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error restoring sacrament', ['id' => $id, 'error' => $e->getMessage()]);
 
             return response()->json([
@@ -430,6 +439,7 @@ class SacramentController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error patching sacrament metadata', ['id' => $id, 'error' => $e->getMessage()]);
 
             return response()->json([
@@ -471,6 +481,7 @@ class SacramentController extends Controller
                 'message' => 'Sacrament deleted successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting sacrament', [
                 'id' => $id,
                 'error' => $e->getMessage(),
@@ -517,6 +528,7 @@ class SacramentController extends Controller
                 'message' => 'Sacrament types retrieved successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching sacrament types', [
                 'error' => $e->getMessage(),
             ]);
@@ -549,6 +561,7 @@ class SacramentController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching sacrament definitions', [
                 'error' => $e->getMessage(),
             ]);
@@ -599,6 +612,7 @@ class SacramentController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error bulk updating sacrament status', [
                 'error' => $e->getMessage(),
             ]);
@@ -650,6 +664,7 @@ class SacramentController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error bulk deleting sacraments', [
                 'error' => $e->getMessage(),
             ]);

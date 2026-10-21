@@ -2,6 +2,8 @@
 
 namespace Modules\RolesAndPermissions\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -133,6 +135,7 @@ class PermissionsController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching permissions: '.$e->getMessage());
 
             return response()->json([
@@ -164,6 +167,7 @@ class PermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching tenant permission catalog: '.$e->getMessage());
 
             return response()->json([
@@ -198,6 +202,7 @@ class PermissionsController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching permission: '.$e->getMessage());
 
             return response()->json([
@@ -284,6 +289,7 @@ class PermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating permission: '.$e->getMessage());
 
             return response()->json([
@@ -387,6 +393,7 @@ class PermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating permission: '.$e->getMessage());
 
             return response()->json([
@@ -451,6 +458,7 @@ class PermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting permission: '.$e->getMessage());
 
             return response()->json([
@@ -571,6 +579,7 @@ class PermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error assigning permission to role: '.$e->getMessage());
 
             return response()->json([
@@ -672,6 +681,7 @@ class PermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error removing permission from role: '.$e->getMessage());
 
             return response()->json([
@@ -800,6 +810,7 @@ class PermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error assigning permission to user: '.$e->getMessage());
 
             return response()->json([
@@ -887,6 +898,7 @@ class PermissionsController extends Controller
                 'message' => 'Permission removed from user successfully',
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error removing permission from user: '.$e->getMessage());
 
             return response()->json([
@@ -1031,6 +1043,7 @@ class PermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error bulk assigning permissions to role: '.$e->getMessage());
 
             return response()->json([
@@ -1079,6 +1092,7 @@ class PermissionsController extends Controller
                 'data' => $permissions,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching permissions for role: '.$e->getMessage());
 
             return response()->json([
@@ -1120,6 +1134,7 @@ class PermissionsController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error syncing tenant role permissions: '.$e->getMessage());
 
             return response()->json([

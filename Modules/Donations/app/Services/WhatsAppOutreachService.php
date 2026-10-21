@@ -81,12 +81,12 @@ class WhatsAppOutreachService
      */
     private function resolveTargets(int $tenantId, ?array $familyIds, int $limit): array
     {
-        $today = now()->toDateString();
+        $today = \Modules\Donations\Support\DonationBusinessDate::today($tenantId);
         $query = ContributionDue::query()
             ->where('tenant_id', $tenantId)
-            ->whereIn('status', ['pending', 'partially_paid'])
             ->whereDate('due_date', '<', $today)
             ->with(['family:id,family_name,family_code,head_of_family']);
+        \Modules\Donations\Support\ContributionBalance::scopeCollectable($query, $today);
 
         if ($familyIds) {
             $query->whereIn('family_id', $familyIds);

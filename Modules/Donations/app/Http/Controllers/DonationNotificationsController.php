@@ -37,6 +37,18 @@ class DonationNotificationsController extends Controller
     public function queueReminder(Request $request): JsonResponse
     {
         $tenantId = app(\Modules\Tenants\Support\TenantContext::class)->requireEffectiveTenantId();
+        $targetType = $request->input('target_type');
+        $targetId = $request->input('target_id');
+        if ($targetType === 'due' && is_string($targetId) && $targetId !== '') {
+            $due = \Modules\Donations\Models\ContributionDue::forTenant($tenantId)->find($targetId);
+            if (! $due || ! \Modules\Donations\Support\ContributionBalance::isCollectableOverdue($due, \Modules\Donations\Support\DonationBusinessDate::today($tenantId))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Reminders are sent only for collectable overdue dues.',
+                ], 422);
+            }
+        }
+
         $log = $this->notificationService->queue(
             $tenantId,
             $request->input('notification_type', 'due.reminder'),

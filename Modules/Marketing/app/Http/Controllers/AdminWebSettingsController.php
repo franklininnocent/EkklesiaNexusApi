@@ -2,6 +2,8 @@
 
 namespace Modules\Marketing\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Support\UserFacingDate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
@@ -65,6 +67,7 @@ class AdminWebSettingsController extends Controller
         try {
             Mail::to($recipient)->send(new WebSettingsTestMail);
         } catch (Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::warning('web.settings.test_email_failed', [
                 'mailer' => (string) config('mail.default'),
                 'message' => mb_substr($e->getMessage(), 0, 300),

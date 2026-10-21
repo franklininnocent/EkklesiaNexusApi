@@ -2,6 +2,8 @@
 
 namespace Modules\Sacraments\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -72,6 +74,7 @@ class SacramentDashboardController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching sacrament dashboard summary', [
                 'error' => $e->getMessage(),
                 'user_id' => $request->user()?->id,
