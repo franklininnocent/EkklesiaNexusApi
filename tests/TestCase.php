@@ -17,6 +17,32 @@ abstract class TestCase extends BaseTestCase
     /**
      * Setup the test environment
      */
+    /**
+     * Block RefreshDatabase migrate:fresh against protected dev databases (see DB_PROTECTED_DATABASES).
+     */
+    protected function beforeRefreshingDatabase(): void
+    {
+        $connection = config('database.default');
+        $database = (string) config("database.connections.{$connection}.database");
+
+        if ($database === ':memory:') {
+            return;
+        }
+
+        $protected = array_filter(array_map(
+            'trim',
+            explode(',', (string) env('DB_PROTECTED_DATABASES', 'EkklesiaNexusDb'))
+        ));
+
+        if ($protected !== [] && in_array($database, $protected, true)) {
+            throw new \RuntimeException(
+                'PHPUnit refused migrate:fresh on protected database "'.$database.'". '
+                .'Run `php artisan config:clear`, ensure phpunit.xml DB settings apply (sqlite :memory:), '
+                .'or use a dedicated test database not listed in DB_PROTECTED_DATABASES.'
+            );
+        }
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

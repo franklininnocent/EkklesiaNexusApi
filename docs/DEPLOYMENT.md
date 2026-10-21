@@ -358,18 +358,15 @@ REDIS_CACHE_DB=1
 FILESYSTEM_DISK=local
 TRUSTED_PROXIES=127.0.0.1
 
-MAIL_MAILER=<smtp-or-approved-transport>
-MAIL_SCHEME=smtp
-MAIL_HOST=<MAIL_HOST>
-MAIL_PORT=587
-MAIL_USERNAME=<MAIL_USERNAME>
-MAIL_PASSWORD=<MAIL_PASSWORD>
+# Production only. Local development keeps MAIL_MAILER=log.
+# DigitalOcean blocks outbound SMTP on ports 25, 465, and 587 and will not lift the block.
+# Zoho remains the inbox for contact@ekklesianexus.com. Sending uses Resend over HTTPS (port 443).
+MAIL_MAILER=resend
+RESEND_KEY=<RESEND_API_KEY>
 MAIL_FROM_ADDRESS=contact@ekklesianexus.com
 MAIL_FROM_NAME=EkklesiaNexus
-# Zoho: copy MAIL_HOST from Settings → Mail Accounts → SMTP.
-# India datacenter mailboxes use smtppro.zoho.in (smtppro.zoho.com returns 535).
-# DigitalOcean droplets block outbound TCP 25/465/587 until SMTP is enabled in the account.
-# Contact-form mail cannot reach Zoho until those ports are open from the API host.
+# Verify ekklesianexus.com for sending in Resend and publish the DKIM/return-path DNS records.
+# Do not replace Zoho MX on the root domain. Do not enable Resend inbound on the apex domain.
 
 MARKETING_BFF_SECRET=<MATCHES_NEXTJS_MARKETING_BFF_SECRET>
 PLATFORM_HEALTH_TOKEN=<RANDOM_TOKEN>
