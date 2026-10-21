@@ -12,6 +12,7 @@ use Modules\Donations\Models\DonationApproval;
 use Modules\Donations\Models\DonationRefund;
 use Modules\Donations\Services\DonationAuditService;
 use Modules\Donations\Services\DonationIdempotencyService;
+use Modules\Authentication\Models\User;
 use Modules\Donations\Services\DonationLedgerService;
 use Modules\Tenants\Support\TenantContext;
 
@@ -49,6 +50,14 @@ class DonationApprovalsController extends Controller
             $approval = DonationApproval::forTenant($tenantId)->lockForUpdate()->findOrFail($id);
             if (in_array($approval->status, ['approved', 'rejected'], true)) {
                 throw new \RuntimeException('This approval has already been decided.');
+            }
+
+            if (
+                $approval->action === 'refund'
+                && (int) $approval->requested_by === $userId
+                && $this->anotherRefundApproverExists($tenantId, $userId)
+            ) {
+                throw new \RuntimeException('Another treasurer must approve this refund.');
             }
 
             $oldValues = $approval->toArray();
@@ -95,5 +104,25 @@ class DonationApprovalsController extends Controller
                 'resource_id' => $approval->id,
             ];
         });
+    }
+
+    /**
+     * A one-person parish can still approve their own refund.
+     * When another treasurer can approve, the requester cannot.
+     */
+    private function anotherRefundApproverExists(int $tenantId, int $userId): bool
+    {
+        return User::query()
+            ->where('tenant_id', $tenantId)
+            ->where('id', '!=', $userId)
+            ->where('active', 1)
+            ->where(function ($query): void {
+                $query->whereHas('roles.permissions', function ($permissions): void {
+                    $permissions->where('name', 'donations.approvals')->where('permissions.active', 1);
+                })->orWhereHas('permissions', function ($permissions): void {
+                    $permissions->where('name', 'donations.approvals')->where('permissions.active', 1);
+                });
+            })
+            ->exists();
     }
 }

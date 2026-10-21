@@ -38,8 +38,14 @@ class ParishExpensesController extends Controller
         $payload['recorded_by'] = $userId;
         $payload['created_by'] = $userId;
         $payload['updated_by'] = $userId;
-        $payload['currency'] = app(ChurchCurrencyResolver::class)
-            ->currencyCodeForTenantId($tenantId) ?? 'INR';
+        $currency = app(ChurchCurrencyResolver::class)->currencyCodeForTenantId($tenantId);
+        if (! is_string($currency) || $currency === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Parish currency is not configured.',
+            ], 422);
+        }
+        $payload['currency'] = $currency;
         $payload['method'] = $payload['method'] ?? 'cash';
         $payload['status'] = $payload['status'] ?? 'recorded';
 

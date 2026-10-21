@@ -111,4 +111,22 @@ class ParishActivityFeedPresenterTest extends TestCase
 
         $this->assertSame('Franklin Innocent F', $item['actor_name']);
     }
+
+    public function test_a_campaign_is_not_titled_as_a_project(): void
+    {
+        $log = new DonationAuditLog([
+            'id' => 6,
+            'event' => 'project.created',
+            'target_type' => 'project',
+            'target_id' => '019ec173-0997-7083-8db7-a417703a5ad6',
+            'new_values' => ['name' => 'Feast Appeal', 'entity_kind' => 'campaign'],
+            'created_at' => now(),
+        ]);
+
+        $item = $this->presenter->present($log, []);
+
+        $this->assertSame('Campaign Created', $item['title']);
+        $this->assertStringContainsString('not a family bill', $item['description']);
+        $this->assertSame('/donations/campaigns', $item['action_path']);
+    }
 }

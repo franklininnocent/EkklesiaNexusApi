@@ -2,6 +2,8 @@
 
 namespace Modules\Sacraments\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -89,6 +91,7 @@ class SacramentCertificateController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Certificate latest download failed', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -117,6 +120,7 @@ class SacramentCertificateController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Certificate preview failed', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -145,6 +149,7 @@ class SacramentCertificateController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Certificate generate failed', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -173,6 +178,7 @@ class SacramentCertificateController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Certificate reissue failed', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -202,6 +208,7 @@ class SacramentCertificateController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Certificate download failed', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -225,6 +232,7 @@ class SacramentCertificateController extends Controller
         } catch (SacramentBusinessRuleException $e) {
             return response()->json($e->toResponse(), $e->httpStatus());
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Certificate print failed', ['error' => $e->getMessage()]);
 
             return response()->json([

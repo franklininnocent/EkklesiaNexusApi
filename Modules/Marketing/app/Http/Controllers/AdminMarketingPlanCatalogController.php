@@ -2,6 +2,8 @@
 
 namespace Modules\Marketing\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
@@ -93,6 +95,7 @@ class AdminMarketingPlanCatalogController extends Controller
                 'code' => 'validation_failed',
             ], 422);
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('marketing.plan_catalog.preview_failed', ['error' => $e->getMessage()]);
 
             return response()->json([

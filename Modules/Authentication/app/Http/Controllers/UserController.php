@@ -2,6 +2,8 @@
 
 namespace Modules\Authentication\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Http\Controllers\Controller;
 use App\Services\TokenService;
 use Illuminate\Contracts\Support\Responsable;
@@ -170,6 +172,7 @@ class UserController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching users: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'exception' => $e,
@@ -237,6 +240,7 @@ class UserController extends Controller
                 'message' => 'User not found or does not belong to your tenant.',
             ], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching user details: '.$e->getMessage(), [
                 'user_id' => $id,
                 'exception' => $e,
@@ -358,6 +362,7 @@ class UserController extends Controller
             DB::rollBack();
             throw $e;
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             DB::rollBack();
 
             if ($e instanceof Responsable) {
@@ -510,6 +515,7 @@ class UserController extends Controller
                 'message' => 'User not found or does not belong to your tenant.',
             ], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             DB::rollBack();
 
             if ($e instanceof Responsable) {
@@ -611,6 +617,7 @@ class UserController extends Controller
                 'message' => 'User not found or does not belong to your tenant.',
             ], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             DB::rollBack();
 
             Log::error('Error deleting user: '.$e->getMessage(), [
@@ -669,6 +676,7 @@ class UserController extends Controller
                 'message' => 'User not found or does not belong to your tenant.',
             ], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching user permissions: '.$e->getMessage(), [
                 'user_id' => $id,
                 'exception' => $e,
@@ -722,6 +730,7 @@ class UserController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching user roles: '.$e->getMessage(), [
                 'user_id' => $id,
                 'exception' => $e,
@@ -818,6 +827,7 @@ class UserController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error assigning roles: '.$e->getMessage(), [
                 'user_id' => $id,
                 'exception' => $e,
@@ -862,6 +872,7 @@ class UserController extends Controller
                 'message' => $e->getMessage(),
             ], $status);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error syncing tenant user roles: '.$e->getMessage(), [
                 'user_id' => $id,
                 'exception' => $e,
@@ -966,6 +977,7 @@ class UserController extends Controller
                 'message' => 'User not found or does not belong to your tenant.',
             ], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             DB::rollBack();
 
             if ($e instanceof Responsable) {
@@ -1036,6 +1048,7 @@ class UserController extends Controller
                 'data' => $results->values(),
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching linkable clergy: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'exception' => $e,
@@ -1107,6 +1120,7 @@ class UserController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching user statistics: '.$e->getMessage(), [
                 'user_id' => $request->user()->id ?? null,
                 'exception' => $e,
@@ -1228,6 +1242,7 @@ class UserController extends Controller
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error uploading user profile image: '.$e->getMessage(), [
                 'user_id' => $id,
                 'exception' => $e,
@@ -1302,6 +1317,7 @@ class UserController extends Controller
                 'message' => 'User not found or does not belong to your tenant.',
             ], 404);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting user profile image: '.$e->getMessage(), [
                 'user_id' => $id,
                 'exception' => $e,

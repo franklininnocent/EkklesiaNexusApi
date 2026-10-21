@@ -5,6 +5,7 @@ namespace Modules\Donations\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Modules\Donations\Support\FinancialAmount;
+use Modules\Tenants\Support\TenantContext;
 
 class CollectVoluntaryDonationRequest extends FormRequest
 {
@@ -19,11 +20,13 @@ class CollectVoluntaryDonationRequest extends FormRequest
         $this->offsetUnset('status');
         $this->offsetUnset('receipt_number');
         $this->offsetUnset('payment_number');
+        $this->offsetUnset('currency');
     }
 
     public function rules(): array
     {
         $method = $this->input('method');
+        $tenantId = app(TenantContext::class)->requireEffectiveTenantId();
 
         return [
             'donation_id' => ['nullable', 'uuid'],
@@ -34,7 +37,13 @@ class CollectVoluntaryDonationRequest extends FormRequest
             'donor_type' => ['nullable', 'in:family,individual,external,organization'],
             'family_id' => ['nullable', 'uuid'],
             'family_member_id' => ['nullable', 'uuid'],
-            'donation_category_id' => ['nullable', 'uuid'],
+            'donation_category_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('donation_categories', 'id')->where(fn ($q) => $q
+                    ->where('tenant_id', $tenantId)
+                    ->whereNull('deleted_at')),
+            ],
             'title' => ['nullable', 'string', 'max:180'],
             'pledged_amount' => FinancialAmount::optional(),
             'received_at' => ['nullable', 'date'],

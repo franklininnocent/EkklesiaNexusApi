@@ -19,8 +19,12 @@ abstract class TestCase extends BaseTestCase
      */
     /**
      * Block RefreshDatabase migrate:fresh against protected dev databases (see DB_PROTECTED_DATABASES).
+     *
+     * The return type is intentionally omitted. Feature tests that `use RefreshDatabase`
+     * import Laravel's untyped beforeRefreshingDatabase(); a `: void` return here makes
+     * those classes fail to load under PHP 8.
      */
-    protected function beforeRefreshingDatabase(): void
+    protected function beforeRefreshingDatabase()
     {
         $connection = config('database.default');
         $database = (string) config("database.connections.{$connection}.database");

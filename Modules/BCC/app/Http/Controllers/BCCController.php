@@ -2,6 +2,8 @@
 
 namespace Modules\BCC\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -79,6 +81,7 @@ class BCCController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve BCCs',
@@ -121,6 +124,7 @@ class BCCController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create BCC',
@@ -162,6 +166,7 @@ class BCCController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve BCC',
@@ -222,6 +227,7 @@ class BCCController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update BCC',
@@ -277,6 +283,7 @@ class BCCController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete BCC',
@@ -310,6 +317,7 @@ class BCCController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics',
@@ -343,6 +351,7 @@ class BCCController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve BCCs',
@@ -386,6 +395,7 @@ class BCCController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve leaders',
@@ -435,6 +445,7 @@ class BCCController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to add leader',
@@ -486,6 +497,7 @@ class BCCController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update leader',
@@ -529,6 +541,7 @@ class BCCController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete leader',
@@ -573,6 +586,7 @@ class BCCController extends Controller
             return response()->json($result);
 
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to assign families',
@@ -619,6 +633,7 @@ class BCCController extends Controller
                 'errors' => $e->errors,
             ], $e->httpStatus);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to remove families',

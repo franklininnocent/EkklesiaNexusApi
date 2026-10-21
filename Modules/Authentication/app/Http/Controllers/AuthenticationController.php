@@ -2,6 +2,8 @@
 
 namespace Modules\Authentication\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Events\Auth\LoginFailed;
 use App\Services\TokenService;
 use Illuminate\Http\JsonResponse;
@@ -54,7 +56,7 @@ class AuthenticationController extends Controller
         if (! $user) {
             event(new LoginFailed($request->email, 'invalid_credentials'));
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => [\App\Support\ApiErrorResponse::LOGIN_INVALID],
             ]);
         }
 
@@ -62,7 +64,7 @@ class AuthenticationController extends Controller
         if (! Hash::check($request->password, $user->password)) {
             event(new LoginFailed($request->email, 'invalid_credentials'));
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => [\App\Support\ApiErrorResponse::LOGIN_INVALID],
             ]);
         }
 
@@ -97,9 +99,8 @@ class AuthenticationController extends Controller
                 'message' => 'Login successful',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Token generation failed: '.$e->getMessage(),
-            ], 500);
+            ApiErrorResponse::rethrowExpected($e);
+            return \App\Support\ApiErrorResponse::unexpected();
         }
     }
 
@@ -126,9 +127,8 @@ class AuthenticationController extends Controller
                 'message' => 'Token refreshed successfully',
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => $e->getMessage(),
-            ], 401);
+            ApiErrorResponse::rethrowExpected($e);
+            return \App\Support\ApiErrorResponse::unauthenticated();
         }
     }
 
@@ -325,6 +325,7 @@ class AuthenticationController extends Controller
                 'message' => $e->publicMessage(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error uploading self profile image: '.$e->getMessage(), [
                 'user_id' => $authUser->id,
                 'exception' => $e,
@@ -372,6 +373,7 @@ class AuthenticationController extends Controller
                 'data' => $authUser,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting self profile image: '.$e->getMessage(), [
                 'user_id' => $authUser->id,
                 'exception' => $e,

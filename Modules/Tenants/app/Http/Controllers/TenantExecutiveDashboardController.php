@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,6 +44,7 @@ class TenantExecutiveDashboardController extends Controller
                 'data' => $payload,
             ]);
         } catch (\Throwable $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Executive dashboard failed', [
                 'error' => $e->getMessage(),
                 'user_id' => $request->user()?->id,

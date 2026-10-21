@@ -33,7 +33,7 @@ return new class extends Migration
             if ($headMember) {
                 // If head member is inactive, activate them
                 if ($headMember->status !== 'active') {
-                    echo "Activating inactive family head: {$headMember->first_name} {$headMember->last_name} (Family: {$family->family_code})\n";
+                    $this->note("Activating inactive family head: {$headMember->first_name} {$headMember->last_name} (Family: {$family->family_code})");
                     $headMember->update(['status' => 'active']);
                 }
                 
@@ -46,7 +46,7 @@ return new class extends Migration
                 $firstActive = $family->members->where('status', 'active')->first();
                 
                 if ($firstActive) {
-                    echo "Designating first active member as head: {$firstActive->first_name} {$firstActive->last_name} (Family: {$family->family_code})\n";
+                    $this->note("Designating first active member as head: {$firstActive->first_name} {$firstActive->last_name} (Family: {$family->family_code})");
                     $firstActive->update(['relationship_to_head' => 'self']);
                     $family->update([
                         'head_of_family' => trim("{$firstActive->first_name} {$firstActive->last_name}")
@@ -54,7 +54,7 @@ return new class extends Migration
                 } else {
                     // No active members at all, activate first member
                     $firstMember = $family->members->first();
-                    echo "All members inactive, activating first member as head: {$firstMember->first_name} {$firstMember->last_name} (Family: {$family->family_code})\n";
+                    $this->note("All members inactive, activating first member as head: {$firstMember->first_name} {$firstMember->last_name} (Family: {$family->family_code})");
                     $firstMember->update([
                         'status' => 'active',
                         'relationship_to_head' => 'self'
@@ -66,7 +66,16 @@ return new class extends Migration
             }
         }
         
-        echo "\n✅ All families now have active family heads.\n";
+        $this->note('All families now have active family heads.');
+    }
+
+    private function note(string $message): void
+    {
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
+        fwrite(STDOUT, $message.PHP_EOL);
     }
 
     /**

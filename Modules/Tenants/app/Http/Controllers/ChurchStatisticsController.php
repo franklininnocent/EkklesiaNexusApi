@@ -2,6 +2,8 @@
 
 namespace Modules\Tenants\Http\Controllers;
 
+use App\Support\ApiErrorResponse;
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -68,6 +70,7 @@ class ChurchStatisticsController extends Controller
                 'total' => $statistics->count(),
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching church statistics: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
@@ -99,6 +102,7 @@ class ChurchStatisticsController extends Controller
                 'data' => $statistic,
             ]);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error fetching church statistic: ' . $e->getMessage(), [
                 'statistic_id' => $id,
                 'trace' => $e->getTraceAsString()
@@ -184,6 +188,7 @@ class ChurchStatisticsController extends Controller
                     'data' => $statistic,
                 ], 201);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
@@ -194,6 +199,7 @@ class ChurchStatisticsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error creating church statistic: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
@@ -286,6 +292,7 @@ class ChurchStatisticsController extends Controller
                     'data' => $statistic,
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
@@ -296,6 +303,7 @@ class ChurchStatisticsController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error updating church statistic: ' . $e->getMessage(), [
                 'statistic_id' => $id,
                 'trace' => $e->getTraceAsString()
@@ -355,10 +363,12 @@ class ChurchStatisticsController extends Controller
                     'message' => 'Church statistic deleted successfully',
                 ]);
             } catch (\Exception $e) {
+                ApiErrorResponse::rethrowExpected($e);
                 DB::rollBack();
                 throw $e;
             }
         } catch (\Exception $e) {
+            ApiErrorResponse::rethrowExpected($e);
             Log::error('Error deleting church statistic: ' . $e->getMessage(), [
                 'statistic_id' => $id,
                 'trace' => $e->getTraceAsString()

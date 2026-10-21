@@ -2,11 +2,16 @@
 
 namespace Modules\Donations\Services;
 
+use Modules\Donations\Models\ContributionDue;
 use Modules\Donations\Models\Donation;
+use Modules\Donations\Models\Fund;
 use Modules\Donations\Models\DonationPayment;
+use Modules\Donations\Models\DonationProject;
 use Modules\Donations\Models\DonationReceipt;
 use Modules\Donations\Models\DonationSetting;
+use Modules\Donations\Models\ProjectInstallmentDue;
 use Modules\Donations\Support\MoneyMath;
+use Modules\Tenants\Services\ChurchCurrencyResolver;
 
 class DonationReceiptService
 {
@@ -74,13 +79,13 @@ class DonationReceiptService
 
     public function reissueReceipt(int $tenantId, int $userId, DonationPayment $payment, string $reason): DonationReceipt
     {
+        if (in_array($payment->status, ['reversed', 'refunded'], true)) {
+            throw new \RuntimeException('A replacement receipt cannot be issued for a reversed or fully refunded payment.');
+        }
+
         $current = $this->currentReceipt($payment);
         if (! $current) {
             return $this->createReceipt($tenantId, $userId, $payment);
-        }
-
-        if (in_array($payment->status, ['reversed', 'refunded'], true)) {
-            throw new \RuntimeException('A replacement receipt cannot be issued for a reversed or fully refunded payment.');
         }
 
         $voided = $this->voidReceipt($tenantId, $userId, $current, $reason, true);
@@ -128,28 +133,16 @@ class DonationReceiptService
         $lineItems = [];
 
         foreach ($payment->allocations as $allocation) {
-            if ($allocation->allocatable_type !== 'donation') {
-                continue;
-            }
-
-            $donation = Donation::forTenant($tenantId)
-                ->with('category')
-                ->find($allocation->allocatable_id);
-
             $amount = MoneyMath::normalize($allocation->amount);
-            $isTaxDeductible = (bool) ($donation?->category?->is_tax_deductible ?? false);
-            if ($isTaxDeductible) {
+            $line = $this->receiptLine($tenantId, $allocation->allocatable_type, (string) $allocation->allocatable_id, $amount);
+            if ($line['is_tax_deductible']) {
                 $taxDeductibleTotal = MoneyMath::add($taxDeductibleTotal, $amount);
             }
-
-            $lineItems[] = [
-                'description' => $donation?->title ?: ($donation?->category?->name ?? 'Voluntary Donation'),
-                'category' => $donation?->category?->name,
-                'amount' => MoneyMath::toApiNumber($amount),
-                'is_tax_deductible' => $isTaxDeductible,
-            ];
+            $lineItems[] = $line;
         }
 
+        $currency = $payment->currency
+            ?: app(ChurchCurrencyResolver::class)->currencyCodeForTenantId($tenantId);
         $isAnonymous = (bool) $payment->is_anonymous;
 
         return [
@@ -161,7 +154,7 @@ class DonationReceiptService
                 'payment_date' => optional($payment->payment_date)->toDateString(),
                 'status' => $payment->status,
                 'amount' => MoneyMath::toApiNumber($payment->amount),
-                'currency' => $payment->currency ?? 'INR',
+                'currency' => $currency,
             ],
             'settings' => $settings,
             'payer' => [
@@ -179,12 +172,54 @@ class DonationReceiptService
             ],
             'totals' => [
                 'amount' => MoneyMath::toApiNumber($payment->amount),
-                'currency' => $payment->currency ?? 'INR',
+                'currency' => $currency,
             ],
             'void' => [
                 'is_void' => (bool) $receipt->is_void,
                 'void_reason' => $receipt->void_reason,
             ],
+        ];
+    }
+
+    /**
+     * @return array{description: string, category: ?string, amount: float|int, is_tax_deductible: bool}
+     */
+    private function receiptLine(int $tenantId, string $type, string $allocatableId, string $amount): array
+    {
+        $description = 'Collection';
+        $category = null;
+        $taxDeductible = false;
+
+        if ($type === 'donation') {
+            $donation = Donation::forTenant($tenantId)->with('category')->find($allocatableId);
+            $description = $donation?->title ?: ($donation?->category?->name ?? 'Voluntary gift');
+            $category = $donation?->category?->name;
+            $taxDeductible = (bool) ($donation?->category?->is_tax_deductible ?? false);
+        } elseif ($type === 'due') {
+            $due = ContributionDue::forTenant($tenantId)->with('plan.fund')->find($allocatableId);
+            $description = trim(($due?->plan?->name ?? 'Family due').($due?->period_label ? ' · '.$due->period_label : ''));
+            $category = $due?->plan?->fund?->name;
+        } elseif ($type === 'project_installment') {
+            $installment = ProjectInstallmentDue::forTenant($tenantId)->with('project')->find($allocatableId);
+            $description = $installment?->installment_label ?: 'Project instalment';
+            $category = $installment?->project?->name;
+        } elseif ($type === 'project') {
+            $project = DonationProject::forTenant($tenantId)->find($allocatableId);
+            $description = $project?->name ?: 'Project';
+            $category = $project?->fund?->name ?? null;
+        } elseif ($type === 'fund') {
+            $fund = Fund::forTenant($tenantId)->find($allocatableId);
+            $description = $fund?->name ?: 'Collection purpose';
+            $category = $fund?->name;
+        } elseif ($type === 'advance') {
+            $description = 'Family credit';
+        }
+
+        return [
+            'description' => $description,
+            'category' => $category,
+            'amount' => MoneyMath::toApiNumber($amount),
+            'is_tax_deductible' => $taxDeductible,
         ];
     }
 

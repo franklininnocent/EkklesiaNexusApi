@@ -9,6 +9,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Modules\Donations\Models\ContributionDue;
 use Modules\Donations\Services\DonationNotificationService;
+use Modules\Donations\Support\ContributionBalance;
+use Modules\Donations\Support\DonationBusinessDate;
 
 class SendContributionReminderJob implements ShouldQueue
 {
@@ -21,7 +23,7 @@ class SendContributionReminderJob implements ShouldQueue
     public function handle(DonationNotificationService $notificationService): void
     {
         $due = ContributionDue::forTenant($this->tenantId)->find($this->dueId);
-        if (!$due) {
+        if (! $due || ! ContributionBalance::isCollectableOverdue($due, DonationBusinessDate::today($this->tenantId))) {
             return;
         }
 
