@@ -31,8 +31,13 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="REDIS_CLIENT" value="predis"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_CONNECTION" value="pgsql" force="true"/>
+        <env name="DB_HOST" value="127.0.0.1" force="true"/>
+        <env name="DB_PORT" value="5432" force="true"/>
+        <env name="DB_DATABASE" value="EkklesiaNexusDb_test" force="true"/>
+        <env name="DB_USERNAME" value="postgres" force="true"/>
+        <env name="DB_PASSWORD" value="admin" force="true"/>
+        <env name="DB_PROTECTED_DATABASES" value="EkklesiaNexusDb" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="SUPER_ADMIN_EMAIL" value="super-admin-notify@example.test"/>
         <env name="SUPER_ADMIN_NAME" value="EkklesiaNexus Super Admin"/>

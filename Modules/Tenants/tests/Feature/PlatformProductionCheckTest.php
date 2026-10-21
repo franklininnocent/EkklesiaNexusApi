@@ -109,6 +109,32 @@ class PlatformProductionCheckTest extends TestCase
             ->assertExitCode(1);
     }
 
+    #[Test]
+    public function production_check_fails_when_mail_still_uses_smtp(): void
+    {
+        $this->bindPublicCorsUrls();
+        $this->productionCheckConfig([
+            'mail.default' => 'smtp',
+        ]);
+
+        $this->artisan('platform:production-check')
+            ->expectsOutputToContain('Transactional mail uses Resend over HTTPS')
+            ->assertExitCode(1);
+    }
+
+    #[Test]
+    public function production_check_fails_when_resend_key_is_missing(): void
+    {
+        $this->bindPublicCorsUrls();
+        $this->productionCheckConfig([
+            'services.resend.key' => '',
+        ]);
+
+        $this->artisan('platform:production-check')
+            ->expectsOutputToContain('Transactional mail uses Resend over HTTPS')
+            ->assertExitCode(1);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */
@@ -120,6 +146,9 @@ class PlatformProductionCheckTest extends TestCase
             'tenants.isolation.orm_global_scope' => true,
             'tenants.platform.health.token' => 'test-token',
             'tenants.subscription.view_only_locked_enforcement' => true,
+            'mail.default' => 'resend',
+            'services.resend.key' => 're_test',
+            'mail.from.address' => 'contact@example.test',
         ], $overrides));
     }
 
