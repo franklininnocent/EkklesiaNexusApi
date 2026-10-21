@@ -59,16 +59,24 @@ class PublicDemoRequestController extends Controller
         ]);
 
         $supportAddress = config('email.support_address');
+        $demoRequestId = $record->id;
         if (is_string($supportAddress) && $supportAddress !== '') {
-            try {
-                Mail::to($supportAddress)->send(new DemoRequestNotificationMail($record));
-            } catch (Throwable $e) {
-                Log::warning('marketing.demo_request.mail_failed', [
-                    'correlation_id' => $record->correlation_id,
-                    'demo_request_id' => $record->id,
-                    'message' => $e->getMessage(),
-                ]);
-            }
+            dispatch(function () use ($demoRequestId, $supportAddress): void {
+                $fresh = MarketingDemoRequest::query()->find($demoRequestId);
+                if ($fresh === null) {
+                    return;
+                }
+
+                try {
+                    Mail::to($supportAddress)->send(new DemoRequestNotificationMail($fresh));
+                } catch (Throwable $e) {
+                    Log::warning('marketing.demo_request.mail_failed', [
+                        'correlation_id' => $fresh->correlation_id,
+                        'demo_request_id' => $fresh->id,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
+            })->afterResponse();
         }
 
         return response()->json([
