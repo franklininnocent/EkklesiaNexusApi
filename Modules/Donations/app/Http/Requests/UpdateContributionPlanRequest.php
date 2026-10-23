@@ -73,6 +73,25 @@ class UpdateContributionPlanRequest extends FormRequest
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            if ($this->input('plan_type') !== 'individual') {
+                return;
+            }
+            if (! $this->has('assignments')) {
+                return;
+            }
+            $assignments = $this->input('assignments');
+            if (! is_array($assignments) || $assignments === []) {
+                $validator->errors()->add(
+                    'assignments',
+                    'Add at least one family amount for per-family plans.'
+                );
+            }
+        });
+    }
+
     public function messages(): array
     {
         return [

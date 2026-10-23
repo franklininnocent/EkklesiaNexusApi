@@ -25,5 +25,7 @@ return [
     'mail' => [
         'max_tries' => 5,
         'backoff_seconds' => [60, 120, 300, 600, 900],
+        /** Enquiries left at delivery_status=received longer than this are retried by the scheduler. */
+        'stuck_grace_seconds' => (int) env('WEB_CONTACT_DELIVERY_STUCK_GRACE_SECONDS', 120),
     ],
 ];
