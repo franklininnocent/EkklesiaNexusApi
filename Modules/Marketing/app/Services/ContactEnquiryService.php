@@ -216,6 +216,29 @@ class ContactEnquiryService
         return $enquiry->fresh();
     }
 
+    /**
+     * @param  array<int, string>  $ids
+     * @return array{deleted_count: int}
+     */
+    public function bulkDelete(array $ids, User $actor): array
+    {
+        $uniqueIds = array_values(array_unique($ids));
+
+        return DB::transaction(function () use ($uniqueIds, $actor): array {
+            $deleted = 0;
+            foreach ($uniqueIds as $id) {
+                $enquiry = ContactEnquiry::query()->find($id);
+                if (! $enquiry) {
+                    continue;
+                }
+                $this->archiveOrDelete($enquiry, $actor, true);
+                $deleted++;
+            }
+
+            return ['deleted_count' => $deleted];
+        });
+    }
+
     public function archiveOrDelete(ContactEnquiry $enquiry, User $actor, bool $hardDelete = false): void
     {
         WebSettingsAuditLog::query()->create([
@@ -261,6 +284,117 @@ class ContactEnquiryService
         $enquiry->last_delivery_error = $this->sanitizeError($safeError);
         $enquiry->save();
         $this->recordEvent($enquiry, ContactEnquiry::DELIVERY_FAILED, (int) $enquiry->delivery_attempts, $enquiry->last_delivery_error);
+
+        Log::error('web.contact_enquiry.delivery_failed', [
+            'enquiry_id' => $enquiry->id,
+            'reference_number' => $enquiry->reference_number,
+            'detail' => $enquiry->last_delivery_error,
+        ]);
+    }
+
+    public function canRetryEmailDelivery(ContactEnquiry $enquiry): bool
+    {
+        if ($enquiry->delivery_status === ContactEnquiry::DELIVERY_SENT) {
+            return false;
+        }
+
+        if ($enquiry->delivery_status === ContactEnquiry::DELIVERY_FAILED) {
+            return true;
+        }
+
+        return $this->isStuckPendingDelivery($enquiry);
+    }
+
+    public function isStuckPendingDelivery(ContactEnquiry $enquiry): bool
+    {
+        if ($enquiry->delivery_status !== ContactEnquiry::DELIVERY_RECEIVED) {
+            return false;
+        }
+
+        $createdAt = $enquiry->created_at;
+        if ($createdAt === null) {
+            return false;
+        }
+
+        return $createdAt->lte(now()->subSeconds($this->stuckGraceSeconds()));
+    }
+
+    /**
+     * @return array{processed: int, sent: int, failed: int}
+     */
+    public function deliverStuckPendingNotifications(): array
+    {
+        $processed = 0;
+        $sent = 0;
+        $failed = 0;
+
+        if ($this->notificationRecipient->email() === null) {
+            Log::error('web.contact_enquiry.stuck_delivery_skipped', [
+                'reason' => 'recipient_missing',
+            ]);
+
+            return ['processed' => 0, 'sent' => 0, 'failed' => 0];
+        }
+
+        $stuck = ContactEnquiry::query()
+            ->where('delivery_status', ContactEnquiry::DELIVERY_RECEIVED)
+            ->where('created_at', '<=', now()->subSeconds($this->stuckGraceSeconds()))
+            ->orderBy('created_at')
+            ->limit(50)
+            ->get();
+
+        foreach ($stuck as $enquiry) {
+            $processed++;
+            $before = $enquiry->fresh()->delivery_status;
+            $this->sendStoredEnquiryNotification($enquiry);
+            $after = $enquiry->fresh()->delivery_status;
+            if ($after === ContactEnquiry::DELIVERY_SENT) {
+                $sent++;
+            } elseif ($before !== $after && $after === ContactEnquiry::DELIVERY_FAILED) {
+                $failed++;
+            } elseif ($after === ContactEnquiry::DELIVERY_FAILED) {
+                $failed++;
+            }
+        }
+
+        if ($processed > 0) {
+            Log::info('web.contact_enquiry.stuck_delivery_batch', [
+                'processed' => $processed,
+                'sent' => $sent,
+                'failed' => $failed,
+            ]);
+        }
+
+        return ['processed' => $processed, 'sent' => $sent, 'failed' => $failed];
+    }
+
+    /**
+     * @return array{total: int, sent: int, failed: int, received: int, stuck_received: int}
+     */
+    public function deliveryHealthSummary(): array
+    {
+        $counts = ContactEnquiry::query()
+            ->selectRaw('delivery_status, count(*) as aggregate')
+            ->groupBy('delivery_status')
+            ->pluck('aggregate', 'delivery_status');
+
+        $stuck = ContactEnquiry::query()
+            ->where('delivery_status', ContactEnquiry::DELIVERY_RECEIVED)
+            ->where('created_at', '<=', now()->subSeconds($this->stuckGraceSeconds()))
+            ->count();
+
+        return [
+            'total' => (int) $counts->sum(),
+            'sent' => (int) ($counts[ContactEnquiry::DELIVERY_SENT] ?? 0),
+            'failed' => (int) ($counts[ContactEnquiry::DELIVERY_FAILED] ?? 0),
+            'received' => (int) ($counts[ContactEnquiry::DELIVERY_RECEIVED] ?? 0),
+            'stuck_received' => $stuck,
+        ];
+    }
+
+    private function stuckGraceSeconds(): int
+    {
+        return max(60, (int) config('marketing.web.mail.stuck_grace_seconds', 120));
     }
 
     public function recordEvent(ContactEnquiry $enquiry, string $status, int $attempt, ?string $detail): void
@@ -295,7 +429,7 @@ class ContactEnquiryService
             'submitted_at' => $enquiry->created_at?->toIso8601String(),
             'submitted_at_label' => UserFacingDate::formatDateTime($enquiry->created_at),
             'read_at' => $enquiry->read_at?->toIso8601String(),
-            'can_retry_email' => $enquiry->delivery_status === ContactEnquiry::DELIVERY_FAILED,
+            'can_retry_email' => $this->canRetryEmailDelivery($enquiry),
         ];
 
         if ($includeMessage) {
@@ -381,7 +515,7 @@ class ContactEnquiryService
 
     public function handleJobException(Throwable $e, ContactEnquiry $enquiry): void
     {
-        Log::warning('web.contact_enquiry.mail_failed', [
+        Log::error('web.contact_enquiry.mail_failed', [
             'enquiry_id' => $enquiry->id,
             'reference_number' => $enquiry->reference_number,
             'message' => $e->getMessage(),

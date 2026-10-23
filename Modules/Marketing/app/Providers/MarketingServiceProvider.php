@@ -24,6 +24,7 @@ class MarketingServiceProvider extends ModuleServiceProvider
      */
     protected array $commands = [
         \Modules\Marketing\Console\ImportMarketingContentCommand::class,
+        \Modules\Marketing\Console\DeliverPendingContactEnquiryNotificationsCommand::class,
     ];
 
     /**
@@ -41,10 +42,12 @@ class MarketingServiceProvider extends ModuleServiceProvider
      * 
      * @param $schedule
      */
-    // protected function configureSchedules(Schedule $schedule): void
-    // {
-    //     $schedule->command('inspire')->hourly();
-    // }
+    protected function configureSchedules(Schedule $schedule): void
+    {
+        $schedule->command('marketing:deliver-pending-contact-notifications')
+            ->everyMinute()
+            ->withoutOverlapping();
+    }
 
     public function boot(): void
     {
