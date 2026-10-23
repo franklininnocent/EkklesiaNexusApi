@@ -319,6 +319,32 @@ class DonationsApiTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_individual_contribution_plan_without_family_assignments(): void
+    {
+        $fund = Fund::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Parish Fund',
+            'code' => 'PARISH_NO_ASSIGN',
+            'status' => 'active',
+        ]);
+
+        $response = $this->postJson('/api/tenant/donations/plans', [
+            'fund_id' => $fund->id,
+            'name' => 'Empty Individual Plan',
+            'code' => 'EMPTY_INDIVIDUAL',
+            'plan_type' => 'individual',
+            'frequency' => 'monthly',
+            'default_amount' => 1,
+            'start_date' => now()->toDateString(),
+            'assignments' => [],
+            'status' => 'active',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['assignments']);
+    }
+
+    #[Test]
     public function it_generates_current_period_dues_for_individual_plan_amounts(): void
     {
         $fund = Fund::create([

@@ -3,9 +3,13 @@
 namespace Modules\Donations\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Modules\Donations\Models\ContributionPlan;
 use Modules\Donations\Models\ContributionPlanAssignment;
 use Modules\Donations\Models\ContributionPlanRevisionHistory;
+use Modules\Donations\Support\DonationBusinessDate;
+use Modules\Donations\Support\MoneyMath;
+use Modules\Family\Models\Family;
 
 class ContributionPlanService
 {
@@ -111,6 +115,77 @@ class ContributionPlanService
             );
 
             return $plan->fresh(['fund', 'assignments.family']);
+        });
+    }
+
+    public function saveIndividualFamilyAmount(
+        int $tenantId,
+        int $userId,
+        string $familyId,
+        string $planId,
+        string $amount
+    ): ContributionPlanAssignment {
+        return DB::transaction(function () use ($tenantId, $userId, $familyId, $planId, $amount): ContributionPlanAssignment {
+            $family = Family::query()->find($familyId);
+
+            if (! $family || (int) $family->tenant_id !== (int) $tenantId) {
+                throw new \RuntimeException('Family does not belong to the tenant.');
+            }
+
+            $plan = ContributionPlan::forTenant($tenantId)->findOrFail($planId);
+
+            if ($plan->plan_type !== 'individual') {
+                throw ValidationException::withMessages([
+                    'plan_id' => 'This plan uses the same amount for every family. Change it on Contribution Plans.',
+                ]);
+            }
+
+            if ($plan->status !== 'active') {
+                throw ValidationException::withMessages([
+                    'plan_id' => 'This contribution plan is not active.',
+                ]);
+            }
+
+            $normalizedAmount = MoneyMath::normalize($amount);
+
+            if (! MoneyMath::isPositive($normalizedAmount)) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Amount must be greater than zero.',
+                ]);
+            }
+
+            $businessToday = DonationBusinessDate::today($tenantId);
+
+            $currentAssignment = ContributionPlanAssignment::forTenant($tenantId)
+                ->where('plan_id', $plan->id)
+                ->where('family_id', $familyId)
+                ->where('status', 'active')
+                ->whereDate('effective_from', '<=', $businessToday)
+                ->where(function ($query) use ($businessToday): void {
+                    $query->whereNull('effective_to')
+                        ->orWhereDate('effective_to', '>=', $businessToday);
+                })
+                ->orderByDesc('effective_from')
+                ->first();
+
+            $effectiveFrom = $currentAssignment
+                ? $currentAssignment->effective_from->toDateString()
+                : $businessToday;
+
+            $this->syncAssignments($tenantId, $userId, $plan, [[
+                'family_id' => $familyId,
+                'amount' => MoneyMath::toApiNumber($normalizedAmount),
+                'effective_from' => $effectiveFrom,
+                'is_exempt' => false,
+                'status' => 'active',
+            ]]);
+
+            return ContributionPlanAssignment::forTenant($tenantId)
+                ->where('plan_id', $plan->id)
+                ->where('family_id', $familyId)
+                ->whereDate('effective_from', $effectiveFrom)
+                ->with('family')
+                ->firstOrFail();
         });
     }
 

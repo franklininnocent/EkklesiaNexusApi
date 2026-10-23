@@ -113,6 +113,8 @@ Route::middleware(['auth:api'])
     ->group(function () {
         Route::get('/', [AdminContactEnquiryController::class, 'index'])
             ->middleware('web_settings.permission:contact_enquiries.view');
+        Route::post('/bulk-delete', [AdminContactEnquiryController::class, 'bulkDestroy'])
+            ->middleware('web_settings.permission:contact_enquiries.delete');
         Route::get('/{enquiry}', [AdminContactEnquiryController::class, 'show'])
             ->middleware('web_settings.permission:contact_enquiries.view')
             ->whereUuid('enquiry');

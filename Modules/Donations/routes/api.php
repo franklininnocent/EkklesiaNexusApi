@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Donations\Http\Controllers\CollectionForecastController;
 use Modules\Donations\Http\Controllers\ContributionDuesController;
 use Modules\Donations\Http\Controllers\ContributionPlanAssignmentsController;
+use Modules\Donations\Http\Controllers\FamilyContributionPlanAssignmentsController;
 use Modules\Donations\Http\Controllers\ContributionPlansController;
 use Modules\Donations\Http\Controllers\ContributionScheduleController;
 use Modules\Donations\Http\Controllers\DonationApprovalsController;
@@ -42,6 +43,8 @@ Route::prefix('tenant/donations')->middleware(['donations.security.log', 'auth:a
     Route::get('/dashboard/rollup', [DonationDashboardController::class, 'rollup'])->middleware('entitlement:FINANCIAL_DASHBOARD');
     Route::get('/dashboard/families/{familyId}/summary', [DonationDashboardController::class, 'familySummary']);
     Route::get('/families/{familyId}/financial-profile', [DonationDashboardController::class, 'familyFinancialProfile']);
+    Route::post('/families/{familyId}/contribution-plan-assignments', [FamilyContributionPlanAssignmentsController::class, 'store'])
+        ->middleware(['tenant.permission:donations.manage', 'entitlement:CONTRIBUTION_PLANS']);
     Route::get('/families/{familyId}/collect-dues', [DonationDashboardController::class, 'familyCollectDues']);
     Route::get('/families/{familyId}/financial-profile/print', [DonationDashboardController::class, 'familyStatementPrint']);
     Route::post('/ai/ask', [FinancialAiController::class, 'ask']);
