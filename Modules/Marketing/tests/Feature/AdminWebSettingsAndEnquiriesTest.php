@@ -127,6 +127,7 @@ class AdminWebSettingsAndEnquiriesTest extends TestCase
             ->assertJsonPath('data.diagnostics.mailer', 'resend')
             ->assertJsonPath('data.diagnostics.api_key_configured', false)
             ->assertJsonPath('data.diagnostics.transport_ready', false)
+            ->assertJsonPath('data.diagnostics.contact_email_will_deliver', false)
             ->assertJsonMissingPath('data.diagnostics.resend_key');
 
         config(['services.resend.key' => 're_test_key']);
@@ -233,6 +234,32 @@ class AdminWebSettingsAndEnquiriesTest extends TestCase
         $this->asPlatformRole(Role::EKKLESIA_MANAGER, Role::LEVEL_EKKLESIA_MANAGER);
         $enquiry = ContactEnquiry::factory()->create();
         $this->deleteJson('/api/admin/contact-enquiries/'.$enquiry->id)->assertForbidden();
+        $this->postJson('/api/admin/contact-enquiries/bulk-delete', [
+            'ids' => [$enquiry->id],
+        ])->assertForbidden();
+    }
+
+    public function test_super_admin_can_delete_single_and_bulk_enquiries(): void
+    {
+        $this->asSuperAdmin();
+        $keep = ContactEnquiry::factory()->create(['email' => 'keep@example.com']);
+        $removeA = ContactEnquiry::factory()->create(['email' => 'remove-a@example.com']);
+        $removeB = ContactEnquiry::factory()->create(['email' => 'remove-b@example.com']);
+
+        $this->deleteJson('/api/admin/contact-enquiries/'.$removeA->id)
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSoftDeleted('contact_enquiries', ['id' => $removeA->id]);
+        $this->assertDatabaseHas('contact_enquiries', ['id' => $keep->id, 'deleted_at' => null]);
+
+        $this->postJson('/api/admin/contact-enquiries/bulk-delete', [
+            'ids' => [$removeB->id],
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.deleted_count', 1);
+
+        $this->assertSoftDeleted('contact_enquiries', ['id' => $removeB->id]);
     }
 
     /**

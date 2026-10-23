@@ -4,6 +4,7 @@ namespace Modules\Marketing\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
+use Modules\Marketing\Http\Requests\BulkDeleteContactEnquiriesRequest;
 use Modules\Marketing\Http\Requests\ListContactEnquiriesRequest;
 use Modules\Marketing\Http\Requests\UpdateContactEnquiryRequest;
 use Modules\Marketing\Services\ContactEnquiryService;
@@ -94,6 +95,20 @@ class AdminContactEnquiryController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Enquiry deleted.',
+        ]);
+    }
+
+    public function bulkDestroy(BulkDeleteContactEnquiriesRequest $request): JsonResponse
+    {
+        $ids = $request->validated('ids');
+        $result = $this->enquiries->bulkDelete($ids, $request->user());
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['deleted_count'] === 1
+                ? '1 enquiry deleted.'
+                : $result['deleted_count'].' enquiries deleted.',
+            'data' => $result,
         ]);
     }
 }

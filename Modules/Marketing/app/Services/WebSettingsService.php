@@ -5,6 +5,7 @@ namespace Modules\Marketing\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 use Modules\Authentication\Models\User;
+use Modules\Marketing\Models\ContactEnquiry;
 use Modules\Marketing\Models\WebSetting;
 use Modules\Marketing\Models\WebSettingsAuditLog;
 
@@ -116,6 +117,16 @@ class WebSettingsService
 
         $recipient = $this->recipientEmail();
         $apiKeyConfigured = trim((string) config('services.resend.key')) !== '';
+        $transportReady = $this->transportAppearsReady($mailer, $fromAddress, is_array($smtp) ? $smtp : []);
+        $mailerWritesToLogOnly = in_array($mailer, ['log', 'array'], true);
+        $stuckGrace = max(60, (int) config('marketing.web.mail.stuck_grace_seconds', 120));
+        $failedDeliveryCount = ContactEnquiry::query()
+            ->where('delivery_status', ContactEnquiry::DELIVERY_FAILED)
+            ->count();
+        $stuckReceivedCount = ContactEnquiry::query()
+            ->where('delivery_status', ContactEnquiry::DELIVERY_RECEIVED)
+            ->where('created_at', '<=', now()->subSeconds($stuckGrace))
+            ->count();
 
         return [
             'contact_form_enabled' => (bool) $settings->contact_form_enabled,
@@ -132,7 +143,11 @@ class WebSettingsService
             'smtp_port' => $mailer === 'smtp' ? (int) ($smtp['port'] ?? 0) : null,
             'smtp_username_configured' => $mailer !== 'smtp' || trim((string) ($smtp['username'] ?? '')) !== '',
             'smtp_password_configured' => $mailer !== 'smtp' || trim((string) ($smtp['password'] ?? '')) !== '',
-            'transport_ready' => $this->transportAppearsReady($mailer, $fromAddress, is_array($smtp) ? $smtp : []),
+            'transport_ready' => $transportReady,
+            'mailer_writes_to_log_only' => $mailerWritesToLogOnly,
+            'contact_email_will_deliver' => $recipient !== null && $transportReady && ! $mailerWritesToLogOnly,
+            'failed_delivery_count' => $failedDeliveryCount,
+            'stuck_received_count' => $stuckReceivedCount,
         ];
     }
 
